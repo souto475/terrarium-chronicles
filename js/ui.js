@@ -59,7 +59,10 @@ T.UI = class {
     this.hoverSpecies = -1;
     this.cardPinned = false;
     this.showExtinct = false;
+    this.cardPoint = null;   // set when the card follows the mouse (tree of life) instead of a row
     this.bindSpeciesCard();
+    this.tree = new T.TreeView(this);
+    $('treeBtn').addEventListener('click', () => this.tree.toggle());
   }
 
   bindWorld(w) {
@@ -73,7 +76,9 @@ T.UI = class {
 
     this.hideInspector();
     this.hoverSpecies = -1;
+    this.cardPoint = null;
     this.renderSpeciesCard();
+    this.tree.lastKey = '';
   }
 
   addEntry(e) {
@@ -110,6 +115,7 @@ T.UI = class {
     this.updateEvolution();
     this.drawGraph();
     this.drawHues();
+    this.tree.render();
     this.updateInspector(selected);
   }
 
@@ -213,8 +219,17 @@ T.UI = class {
   }
 
   setHoverSpecies(id) {
-    if (id === this.hoverSpecies) return;
+    if (id === this.hoverSpecies && !this.cardPoint) return;
     this.hoverSpecies = id;
+    this.cardPoint = null;
+    this.cardPinned = false;
+    this.renderSpeciesCard();
+  }
+
+  // Shows the card for a species next to a screen point (used by the tree of life).
+  showCardAt(id, x, y) {
+    this.hoverSpecies = id;
+    this.cardPoint = id >= 0 ? { x, y } : null;
     this.cardPinned = false;
     this.renderSpeciesCard();
   }
@@ -222,14 +237,24 @@ T.UI = class {
   renderSpeciesCard() {
     const card = $('speciesCard');
     const id = this.hoverSpecies;
-    const li = id >= 0 ? $('speciesSection').querySelector(`li[data-id="${id}"]`) : null;
-    if (!li) {
+    const pt = this.cardPoint;
+    const li = id >= 0 && !pt ? $('speciesSection').querySelector(`li[data-id="${id}"]`) : null;
+    if (id < 0 || !this.w.species[id] || (!li && !pt)) {
       card.hidden = true;
       return;
     }
     const html = this.speciesCardHtml(this.w.species[id]);
     if (card.innerHTML !== html) card.innerHTML = html;
     card.hidden = false;
+
+    if (pt) {
+      const cw = card.offsetWidth, ch = card.offsetHeight;
+      const left = pt.x + 18 + cw < window.innerWidth ? pt.x + 18 : pt.x - cw - 18;
+      card.style.right = '';
+      card.style.left = `${Math.max(8, left)}px`;
+      card.style.top = `${T.clamp(pt.y - 24, 8, window.innerHeight - ch - 8)}px`;
+      return;
+    }
 
     // Beside the panel on wide screens, below the row on narrow ones.
     const r = li.getBoundingClientRect();
@@ -286,7 +311,11 @@ T.UI = class {
       story.push(`Opportunists: they have eaten ${s.kills} creatures along the way.`);
     }
     if (children.length) {
-      const list = children.map((c) => 'the ' + name(c));
+      // Name the three most successful descendants; count the rest.
+      const top = children.slice().sort((a, b) => b.peak - a.peak).slice(0, 3);
+      const list = top.map((c) => 'the ' + name(c));
+      const more = children.length - top.length;
+      if (more > 0) list.push(`${more} more`);
       const joined = list.length === 1 ? list[0] : list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
       story.push(`Ancestors of ${joined}.`);
     }

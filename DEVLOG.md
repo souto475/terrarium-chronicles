@@ -76,8 +76,22 @@ pick off stragglers at the edge of a group, or grazing that works better in comp
 - New `tools/batch.js`: runs many seeds headless and prints hunter-years, population, species,
   size and speed; `OVERRIDES='NAME=value'` swaps constants in `creature.js` for A/B tests.
 
+**Tree of life (T, or the button in the Species header).** With predation, a world can go
+through 30 species in a century, and the panel only shows the living. The tree draws every
+species as a stream from its birth to its end (or now), thickness ∝ √population from the yearly
+census, joined to its parent at the moment of the split, laid out depth-first so children sit
+under their parents. Hovering a stream shows the species card next to the mouse (the card now
+supports a point anchor as well as a panel row). Never-announced branches are hidden by default
+(with a "Show every branch" toggle), but ancestors of anything shown are always kept, so the
+lines never float. Hunter species get a red outline. The SVG is rebuilt only when the year, the
+species list or a species' alive/extinct status changes.
+- Fixes found while testing it: a species could make the news as hunters without ever being
+  announced, and then be missing from the tree; becoming hunters now counts as being announced.
+  Cards with many descendants listed all of them (17 in one case); now the three most successful
+  plus a count.
+
 Next:
-- A tree-of-life view of species; saving worlds across reloads.
+- Saving worlds across reloads.
 - Watch whether speed pinned near its max (3) needs a rethink.
 - Still waiting on monitor readings for the stutters.
 

@@ -28,7 +28,16 @@
       <div id="toast" aria-live="polite"></div>
       <div id="inspector" hidden></div>
       <div id="perf" hidden></div>
-      <div id="hint">Click a creature to inspect · scroll: zoom · drag: pan · 0: reset view · P: performance</div>
+      <div id="tree" hidden>
+        <div class="tree-head">
+          <h2>Tree of life</h2>
+          <span id="treeNote" class="note"></span>
+          <label class="tree-toggle"><input type="checkbox" id="treeMinor"> Show every branch</label>
+          <button id="treeClose" class="btn small" title="T">Close</button>
+        </div>
+        <div id="treeBody"></div>
+      </div>
+      <div id="hint">Click a creature to inspect · scroll: zoom · drag: pan · 0: reset view · T: tree of life · P: performance</div>
     </main>
 
     <aside id="panel">
@@ -63,7 +72,7 @@
       </section>
 
       <section id="speciesSection">
-        <h2>Species <span id="spCount"></span></h2>
+        <h2>Species <button id="treeBtn" class="h2-btn" title="T">Tree of life</button><span id="spCount"></span></h2>
         <ul id="species"></ul>
         <canvas id="hues" title="Colors of every living creature: each species tends to its own hue"></canvas>
         <button id="extinctToggle" class="disclosure" aria-expanded="false" hidden></button>
@@ -97,6 +106,7 @@
   <script src="js/render.js"></script>
   <script src="js/perf.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/tree.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

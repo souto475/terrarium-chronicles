@@ -104,8 +104,9 @@
     else if (e.key >= '1' && e.key <= '4') setSpeed([1, 4, 16, 64][+e.key - 1]);
     else if (e.key === '0') renderer.fit();
     else if (e.key === 'f' || e.key === 'F') { if (renderer.selected) follow = !follow; }
-    else if (e.key === 'Escape') select(null);
+    else if (e.key === 'Escape') { if (ui.tree.open) ui.tree.toggle(false); else select(null); }
     else if (e.key === 'p' || e.key === 'P') perf.toggle(world);
+    else if (e.key === 't' || e.key === 'T') ui.tree.toggle();
   });
 
   // ---------- Camera and selection ----------

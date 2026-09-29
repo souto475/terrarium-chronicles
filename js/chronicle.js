@@ -147,6 +147,7 @@ T.Chronicle = class {
     for (const s of w.aliveSpecies()) {
       if (s.hunterSince < 0 && s.centroid && s.centroid.diet >= T.PRED.HUNTER_DIET && s.count >= 8) {
         s.hunterSince = w.tick;
+        s.announced = true;   // making the news as hunters puts them on the record
         const pct = Math.round(s.centroid.diet * 100);
         this.add(`The ${s.name} have become hunters: ${pct}% of their food now comes from other creatures.`, 'predation');
       }

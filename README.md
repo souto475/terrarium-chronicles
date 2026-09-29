@@ -36,7 +36,8 @@ with every push to `main`. Or clone the repo and open `index.html`: no install, 
 
 - The number after `#` in the URL is the world seed: `index.html#42` always produces the same world.
 - **Space** pause · **1–4** speed · **scroll** zoom · **drag** pan · **0** reset view ·
-  **click** a creature to inspect it · **F** follow it · **Esc** deselect · **P** performance monitor.
+  **click** a creature to inspect it · **F** follow it · **Esc** deselect · **T** tree of life ·
+  **P** performance monitor.
 - Hover a species in the panel (or tap it on a phone) to read its story.
 
 ## What's in it so far
@@ -55,6 +56,8 @@ with every push to `main`. Or clone the repo and open `index.html`: no install, 
 - Species cards: hover a species to see its population curve, what makes it distinct, its
   ancestors and descendants and, for extinct ones, how it ended (hunger, old age, a rival
   that grew while it shrank, or a slow transformation into another species).
+- A tree of life (**T**): every species as a stream along the timeline, as thick as its population,
+  branching from its ancestor. Short-lived branches are hidden unless you ask for them.
 - Panels: census, living species with their color spread (extinct ones folded away), a
   full-history chart, an evolution panel that plots how each average gene has moved since the
   founders, and an inspector for any creature.
@@ -186,7 +189,9 @@ with regular splits and extinctions.
 | `js/chronicle.js` | Watches events and writes headlines |
 | `js/render.js` | Canvas, camera, drawing |
 | `js/ui.js` | Panels: chronicle, census, species and species cards, chart, evolution, inspector |
+| `js/tree.js` | Tree of life (T) |
 | `js/perf.js` | Performance monitor (P) |
+| `tools/batch.js` | Headless multi-seed runner for balance experiments |
 | `js/main.js` | Animation loop and input |
 
 ## License
