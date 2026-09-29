@@ -11,6 +11,7 @@
   --food: #6fae6a;
   --danger: #d9735f;
   --species: #8fb8e8;
+  --hunter: #e45848;
   --serif: 'Fraunces', Georgia, serif;
   --sans: 'Inter', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -108,6 +109,7 @@ html, body {
 
 #entries li[data-kind='evolution'] .tag { color: var(--food); }
 #entries li[data-kind='species'] .tag { color: var(--species); }
+#entries li[data-kind='predation'] .tag { color: var(--hunter); }
 
 #entries p {
   font-family: var(--serif);
@@ -608,3 +610,6 @@ input[type='text'] {
 .evo-line { fill: none; stroke: var(--faint); stroke-width: 1.5; }
 .evo-row.moved .evo-line { stroke: var(--accent); }
 .evo-base { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 3; }
+
+/* Hunter species: a red ring around their dot, like on the map. */
+#species .dot.hunter { box-shadow: 0 0 0 1.5px var(--panel), 0 0 0 3px var(--hunter); }

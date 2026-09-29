@@ -10,6 +10,7 @@ const KIND_TAG = {
   generation: 'Generation',
   obituary: 'Obituary',
   species: 'New species',
+  predation: 'Predation',
   end: 'The end',
 };
 
@@ -28,6 +29,7 @@ const TRAIT_WORDS = {
   sense: ['keen-sighted', 'short-sighted'],
   repro: ['patient breeders', 'early breeders'],
   mutation: ['genetically restless', 'genetically steady'],
+  diet: ['predatory', 'strict grazers'],
 };
 
 // The two traits that stand out most (normalized to each gene's range), e.g. "Large and fast".
@@ -98,7 +100,7 @@ T.UI = class {
     $('sPop').textContent = w.creatures.length;
     $('sGen').textContent = w.maxGen;
     $('sBirths').textContent = w.totalBirths;
-    $('sDeaths').innerHTML = `${w.totalDeaths} <small>${w.deathsByCause.starvation} starved</small>`;
+    $('sDeaths').innerHTML = `${w.totalDeaths} <small>${w.deathsByCause.starvation} starved · ${w.deathsByCause.predation} eaten</small>`;
     $('sSeason').textContent = season;
     $('playBtn').textContent = paused ? 'Resume' : 'Pause';
     $('actualSpeed').textContent = paused ? 'Paused' : `Running at ${actualSpeed}×`;
@@ -121,7 +123,7 @@ T.UI = class {
       const info = ext ? `gone · yr ${T.yearOf(s.extinctAt)}` : s.count;
       const share = ext ? 0 : (s.count / pop) * 100;
       return `<li data-id="${s.id}" class="${ext ? 'extinct' : ''}">
-        <span class="dot" style="background:${T.hueColor(s.hue)}"></span>
+        <span class="dot${s.centroid && s.centroid.diet >= T.PRED.HUNTER_DIET ? ' hunter' : ''}" style="background:${T.hueColor(s.hue)}"></span>
         <span class="name">${esc(s.name)}<small>${parent}</small></span>
         <span class="count">${info}</span>
         <i class="share" style="width:${share.toFixed(1)}%"></i></li>`;
@@ -155,9 +157,9 @@ T.UI = class {
       const series = samples.map((p) => p.avg[k]);
       if (!series.length) return '';
       const v = w.creatures.length ? w.last.avg[k] : series[series.length - 1];
-      const pct = Math.round(((v - found[k]) / found[k]) * 100);
+      const pct = d.absolute ? Math.round((v - found[k]) * 100) : Math.round(((v - found[k]) / found[k]) * 100);
       const moved = Math.abs(pct) >= 5;
-      const tag = moved ? `${pct > 0 ? '▲' : '▼'} ${Math.abs(pct)}%` : 'steady';
+      const tag = moved ? `${pct > 0 ? '▲' : '▼'} ${Math.abs(pct)}${d.absolute ? ' pts' : '%'}` : 'steady';
 
       // Scale to the series, but never tighter than 6% of the gene's range, so noise stays flat.
       const step = Math.max(1, Math.floor(series.length / SPARK_POINTS));
@@ -278,6 +280,11 @@ T.UI = class {
         story.push(this.declineStory(s));
       }
     }
+    if (s.hunterSince >= 0) {
+      story.push(`They turned to hunting in year ${Y(s.hunterSince)} and have eaten ${s.kills} creature${s.kills === 1 ? '' : 's'}.`);
+    } else if (s.kills >= 10) {
+      story.push(`Opportunists: they have eaten ${s.kills} creatures along the way.`);
+    }
     if (children.length) {
       const list = children.map((c) => 'the ' + name(c));
       const joined = list.length === 1 ? list[0] : list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
@@ -286,9 +293,9 @@ T.UI = class {
 
     const traits = cen ? T.TRAIT_KEYS.map((k) => {
       const d = T.GENES[k];
-      const pct = ref[k] ? Math.round(((cen[k] - ref[k]) / ref[k]) * 100) : 0;
+      const pct = d.absolute ? Math.round((cen[k] - ref[k]) * 100) : ref[k] ? Math.round(((cen[k] - ref[k]) / ref[k]) * 100) : 0;
       const cls = Math.abs(pct) < 5 ? 'same' : pct > 0 ? 'up' : 'down';
-      const tag = cls === 'same' ? 'avg' : `${pct > 0 ? '+' : ''}${pct}%`;
+      const tag = cls === 'same' ? 'avg' : `${pct > 0 ? '+' : ''}${pct}${d.absolute ? ' pts' : '%'}`;
       return `<dt>${d.label}</dt><dd>${d.fmt(cen[k])}</dd><dd class="${cls}">${tag}</dd>`;
     }).join('') : '';
 
@@ -307,15 +314,25 @@ T.UI = class {
   // Why an extinct species disappeared: what killed it after its peak, and who grew meanwhile.
   declineStory(s) {
     const w = this.w, Y = T.yearOf;
-    const starved = s.deaths.starvation - s.deathsAtPeak.starvation;
-    const old = s.deaths['old age'] - s.deathsAtPeak['old age'];
-    const total = starved + old;
+    const after = (k) => s.deaths[k] - s.deathsAtPeak[k];
+    const starved = after('starvation'), old = after('old age'), eaten = after('predation');
+    const total = starved + old + eaten;
     const parts = [];
     if (total > 0) {
-      const p = Math.round((starved / total) * 100);
-      if (p >= 60) parts.push(`Hunger did them in: ${p}% of deaths after their peak were from starvation.`);
-      else if (p <= 30) parts.push(`Most died of old age (${100 - p}% of deaths after their peak): they stopped raising enough young to replace themselves.`);
-      else parts.push(`After their peak, deaths were split between hunger (${p}%) and old age.`);
+      const pct = (n) => Math.round((n / total) * 100);
+      let killer = null, most = 0;
+      for (const id of Object.keys(s.killedBy)) {
+        if (s.killedBy[id] > most) { most = s.killedBy[id]; killer = w.species[id]; }
+      }
+      if (pct(eaten) >= 50) {
+        parts.push(`They were hunted down: ${pct(eaten)}% of deaths after their peak were kills${killer ? `, most of them by the ${esc(killer.name)}` : ''}.`);
+      } else if (pct(starved) >= 60) {
+        parts.push(`Hunger did them in: ${pct(starved)}% of deaths after their peak were from starvation.`);
+      } else if (pct(old) >= 60) {
+        parts.push(`Most died of old age (${pct(old)}% of deaths after their peak): they stopped raising enough young to replace themselves.`);
+      } else {
+        parts.push(`After their peak they died of hunger (${pct(starved)}%), old age (${pct(old)}%) and predators (${pct(eaten)}%).`);
+      }
     }
     const rows = w.speciesYearly;
     const a = rows[Math.min(Y(s.peakAt), rows.length - 1)] || [];
@@ -437,11 +454,13 @@ T.UI = class {
     const rows = T.TRAIT_KEYS.map((k) => `<dt>${T.GENES[k].label}</dt><dd>${T.GENES[k].fmt(c.genes[k])}</dd>`).join('');
     const status = c.alive
       ? `<div class="energy" title="Energy"><i style="width:${((c.energy / c.maxEnergy) * 100).toFixed(0)}%"></i></div>`
-      : `<div class="dead">Died of ${c.cause} in year ${T.yearOf(c.died)}.</div>`;
+      : c.cause === 'predation' && c.killer
+        ? `<div class="dead">Eaten by ${esc(c.killer.name)} of the ${esc(w.species[c.killer.species].name)} in year ${T.yearOf(c.died)}.</div>`
+        : `<div class="dead">Died of ${c.cause} in year ${T.yearOf(c.died)}.</div>`;
     const html = `<div class="who"><span class="dot" style="background:${c.color}"></span><div><h3>${esc(c.name)}</h3>
       <div class="sub">of the ${esc(sp.name)} · ${c.gen ? 'generation ' + c.gen : 'founder'}</div></div></div>
       ${status}
-      <dl class="kv"><dt>Age</dt><dd>${fmtYears(age)} yrs</dd><dt>Children</dt><dd>${c.children}</dd>${rows}</dl>`;
+      <dl class="kv"><dt>Age</dt><dd>${fmtYears(age)} yrs</dd><dt>Children</dt><dd>${c.children}</dd>${c.kills ? `<dt>Kills</dt><dd>${c.kills}</dd>` : ''}${rows}</dl>`;
     const body = $('inspector').querySelector('.body');
     if (body.innerHTML !== html) body.innerHTML = html;
     const fb = $('inspector').querySelector('[data-act=follow]');

@@ -11,6 +11,57 @@ the live world.
 
 ---
 
+## Session 4 — 2026-09-28 (autonomous)
+
+The tester stepped away and left the direction to me. Added `CLAUDE.md` so the core rule of
+the project (Claude owns it; feedback is input, not orders) loads in every session.
+
+**Decision: predation before social behavior.** The roadmap had herding (step 3) before
+conflict (step 4). Swapped them: herding only pays off when there are predators to herd
+against, and predation was the expected fix for the "small and fast" convergence.
+
+What changed:
+- New gene `diet` (0–1, founders 0–6%). Plants digest at `1 − diet`, meat at `diet^0.75`.
+  Included in species distance. Changes are shown in points, not percent (`absolute: true`),
+  because a percentage of a near-zero founder value is meaningless.
+- Hunting: diet ≥ 20% and energy < 60% → look for the nearest creature of another species within
+  sight weighing ≤ 70% of the hunter, chase it, strike on contact (cooldown 24 ticks). Odds
+  `0.2 + 0.5·sizeEdge + 0.4·speedEdge`, clamped 5–85%. A miss scares the prey off. Pure carnivores
+  (plant efficiency < 15%) roam instead of grazing.
+- Fleeing: any creature of another species with diet ≥ 25% and big enough to eat you, within
+  min(sight, 90 px), sends you running for 20 ticks.
+- Spatial grid (50 px cells) rebuilt every tick, `world.near()`, `findPrey()`, `findThreat()`.
+  Threat checks are skipped until some creature is dangerous (`world.hasHunters`).
+- Calibration runs (seeds 1, 7, 42, 949118, 100 years each):
+  - v1 (√diet, hunt at 12% meat, prey ≤ 80% mass, hunt below 80% energy): predators evolved
+    everywhere by year 20–30, but omnivores with 10–20% meat killed constantly, predation was
+    the top cause of death and one world fell to 103 creatures.
+  - v2 (diet^0.75, hunt at 20%, prey ≤ 70%, hunt below 60%): predator species emerge in most
+    worlds and can persist (world 7: Orho, 98% meat, ~43 hunters vs ~340 grazers from year 60 to
+    100+). World 42 never evolved true hunters in 100 years, which I consider a feature.
+  - Size is no longer pinned at 0.55: species range from ~0.6 to 2.5. Speed became the arms
+    race (average ~2.4–2.8).
+- Chronicle: first kill ("Blood in the terrarium"), species turning into hunters (centroid diet ≥
+  40%), years where ≥ 45% of deaths were kills, and diet trends in points.
+- **Editorial filter for species news.** Species churn went up with predation (world 949118: 30
+  species in 100 years, 18 of the 24 extinctions were tiny or short-lived). New species are now
+  announced only once established (2 years with ≥ 15 members, or ≥ 40 members), and
+  extinctions of never-announced species are silent. They still show in the panel.
+- Visuals: red ring on hunters (diet ≥ 40%) on the map and on hunter species in the panel. At 25%
+  half the map was ringed, so the ring uses the "hunter" threshold, not the "dangerous" one.
+- Species cards: kills, "turned to hunting in year N", and a third cause of decline ("hunted
+  down, most of them by the X") using per-species `killedBy` tallies. Inspector shows kills and
+  "Eaten by X of the Y". Census shows eaten count.
+- **Performance:** a CPU profile showed 25% of sim time in `cellIndex` (two `Math.floor` divisions,
+  called several times per creature per tick). Multiplying by a precomputed inverse and truncating
+  with `|0` took a tick from 1.13 to 0.63 ms at ~540 creatures, with bit-identical results.
+
+Next:
+- Social behavior (step 4): a sociability gene, herding for safety (predators should find herds
+  harder to attack), maybe kin feeding.
+- Watch whether speed pinned near its max (3) needs a rethink.
+- Still waiting on monitor readings for the stutters.
+
 ## Session 3 — 2026-09-28
 
 Feedback: stutters still happen now and then (world #949118, around year 73, ~1,200 creatures).

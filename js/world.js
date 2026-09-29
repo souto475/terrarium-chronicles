@@ -12,11 +12,20 @@ T.World = class {
     this.cs = C.cell;
     this.cols = Math.ceil(this.W / this.cs);
     this.rows = Math.ceil(this.H / this.cs);
+    this.invCs = 1 / this.cs;   // multiply instead of divide in the hottest lookups
 
     const n = this.cols * this.rows;
     this.fert = new Float32Array(n);
     this.food = new Float32Array(n);
     this.occ = new Float32Array(n);   // biggest mass present in each cell this tick
+
+    // Spatial grid for creature-to-creature queries (prey, threats), rebuilt every tick.
+    this.gcs = 50;
+    this.gcols = Math.ceil(this.W / this.gcs);
+    this.grows = Math.ceil(this.H / this.gcs);
+    this.invGcs = 1 / this.gcs;
+    this.grid = Array.from({ length: this.gcols * this.grows }, () => []);
+    this.hasHunters = false;
     const noise = T.makeNoise(this.rng);
     const ox = this.rng() * 100, oy = this.rng() * 100;
     for (let y = 0; y < this.rows; y++) {
@@ -37,7 +46,10 @@ T.World = class {
     this.deadThisTick = false;
     this.totalBirths = 0;
     this.totalDeaths = 0;
-    this.deathsByCause = { starvation: 0, 'old age': 0 };
+    this.deathsByCause = { starvation: 0, 'old age': 0, predation: 0 };
+    this.yearDeaths = { starvation: 0, 'old age': 0, predation: 0 };
+    this.firstKill = false;
+    this.lastYearDeaths = null;
     this.maxGen = 0;
     this.species = [];
     this.usedNames = new Set();
@@ -111,8 +123,9 @@ T.World = class {
     return Math.max(0, 1 + this.climate * Math.sin(this.season() * Math.PI * 2));
   }
 
+  // Coordinates are never negative, so truncating with |0 is the same as flooring.
   cellIndex(x, y) {
-    return Math.floor(y / this.cs) * this.cols + Math.floor(x / this.cs);
+    return ((y * this.invCs) | 0) * this.cols + ((x * this.invCs) | 0);
   }
 
   step() {
@@ -125,11 +138,13 @@ T.World = class {
       food[i] = f > max ? max : f;
     }
 
-    const list = this.creatures, occ = this.occ;
+    const list = this.creatures, occ = this.occ, grid = this.grid;
     occ.fill(0);
+    for (let i = 0; i < grid.length; i++) grid[i].length = 0;
     for (let i = 0; i < list.length; i++) {
       const c = list[i], k = this.cellIndex(c.x, c.y);
       if (c.mass > occ[k]) occ[k] = c.mass;
+      grid[((c.y * this.invGcs) | 0) * this.gcols + ((c.x * this.invGcs) | 0)].push(c);
     }
     for (let i = 0; i < list.length; i++) {
       if (list[i].alive) list[i].update(this);
@@ -147,7 +162,11 @@ T.World = class {
     }
 
     if (this.tick % C.speciesEvery === 0 && list.length) T.speciate(this);
-    if (this.tick % C.year === 0) this.speciesYearly.push(this.species.map((s) => s.count));
+    if (this.tick % C.year === 0) {
+      this.speciesYearly.push(this.species.map((s) => s.count));
+      this.lastYearDeaths = this.yearDeaths;
+      this.yearDeaths = { starvation: 0, 'old age': 0, predation: 0 };
+    }
 
     if (this.tick % C.sampleEvery === 0) {
       this.last = this.census();
@@ -160,6 +179,9 @@ T.World = class {
           this.historyStride *= 2;
         }
       }
+      let hunters = false;
+      for (let i = 0; i < list.length && !hunters; i++) hunters = list[i].dangerous;
+      this.hasHunters = hunters;
       for (const s of this.species) {
         if (s.count > s.peak) {
           s.peak = s.count;
@@ -200,6 +222,13 @@ T.World = class {
     this.deadThisTick = true;
     this.totalDeaths++;
     this.deathsByCause[c.cause]++;
+    this.yearDeaths[c.cause]++;
+    if (c.cause === 'predation') {
+      const ks = c.killer.species;
+      this.species[ks].kills++;
+      const kb = this.species[c.species].killedBy;
+      kb[ks] = (kb[ks] || 0) + 1;
+    }
     this.chronicle.onDeath(c);
     const s = this.species[c.species];
     s.deaths[c.cause]++;
@@ -212,6 +241,49 @@ T.World = class {
     s.extinctAt = this.tick;
     s.avgAtEnd = Object.assign({}, this.last.avg);
     this.chronicle.onSpeciesGone(s, successor);
+  }
+
+  // Calls fn for every creature within r of (x, y), until fn returns true.
+  near(x, y, r, fn) {
+    const g = this.gcs;
+    const x0 = Math.max(0, Math.floor((x - r) / g)), x1 = Math.min(this.gcols - 1, Math.floor((x + r) / g));
+    const y0 = Math.max(0, Math.floor((y - r) / g)), y1 = Math.min(this.grows - 1, Math.floor((y + r) / g));
+    const r2 = r * r;
+    for (let gy = y0; gy <= y1; gy++) {
+      for (let gx = x0; gx <= x1; gx++) {
+        const cell = this.grid[gy * this.gcols + gx];
+        for (let i = 0; i < cell.length; i++) {
+          const o = cell[i];
+          const dx = o.x - x, dy = o.y - y;
+          if (dx * dx + dy * dy <= r2 && fn(o, dx * dx + dy * dy)) return;
+        }
+      }
+    }
+  }
+
+  // Nearest creature of another species that c could eat.
+  findPrey(c) {
+    let best = null, bd = Infinity;
+    const maxMass = c.mass * T.PRED.PREY_MAX_MASS;
+    this.near(c.x, c.y, c.genes.sense, (o, d2) => {
+      if (o.alive && o.species !== c.species && o.mass <= maxMass && d2 < bd) { bd = d2; best = o; }
+      return false;
+    });
+    return best;
+  }
+
+  // Any creature of another species close enough, carnivorous enough and big enough to eat c.
+  findThreat(c) {
+    let found = null;
+    const minMass = c.mass / T.PRED.PREY_MAX_MASS;
+    this.near(c.x, c.y, Math.min(c.genes.sense, 90), (o) => {
+      if (o.alive && o.dangerous && o.species !== c.species && o.mass >= minMass) {
+        found = o;
+        return true;
+      }
+      return false;
+    });
+    return found;
   }
 
   creatureAt(x, y, maxDist) {

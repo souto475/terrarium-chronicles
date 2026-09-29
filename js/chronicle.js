@@ -33,7 +33,17 @@ const TRENDS = {
     up: (p) => `Life grows unstable: the mutation rate is up ${p}%.`,
     down: (p) => `Heredity settles down, and the mutation rate falls ${p}%.`,
   },
+  // Diet starts near zero, so its trend is measured in points (p is already in points here).
+  diet: {
+    up: (p) => `The terrarium grows hungrier for flesh: meat now makes up ${p} more points of the average diet.`,
+    down: (p) => `A return to grazing: meat's share of the average diet falls by ${p} points.`,
+  },
 };
+
+// A new species makes the news once it has lasted two years with a real population, or grown big.
+const ESTABLISHED_YEARS = 2;
+const ESTABLISHED_COUNT = 40;
+const ESTABLISHED_MIN = 15;
 
 T.Chronicle = class {
   constructor(world) {
@@ -95,6 +105,17 @@ T.Chronicle = class {
     }
     if (crossed) this.add(`The population passes ${crossed} creatures for the first time.`, 'milestone');
 
+    for (const s of w.species) {
+      if (s.announced || s.count === 0) continue;
+      const lasted = w.tick - s.born >= ESTABLISHED_YEARS * T.CFG.year;
+      if ((lasted && s.count >= ESTABLISHED_MIN) || s.count >= ESTABLISHED_COUNT) {
+        s.announced = true;
+        const parent = w.species[s.parentId];
+        this.add(`A new species has taken hold: the ${s.name}, who branched off from the ${parent.name} in year ${T.yearOf(s.born)}, now number ${s.count}.`, 'species');
+        this.soleSpecies = -1;
+      }
+    }
+
     // Famine: a sharp drop from the peak of the last three years.
     const windowLen = Math.round((3 * T.CFG.year) / T.CFG.sampleEvery);
     this.recentPops.push(pop);
@@ -108,12 +129,33 @@ T.Chronicle = class {
     if (w.tick % T.CFG.year === 0 && this.baseline) {
       for (const k of Object.keys(TRENDS)) {
         const base = this.baseline[k];
-        const rel = (w.last.avg[k] - base) / base;
-        if (Math.abs(rel) >= 0.3 && this.ready('trend_' + k, 6)) {
-          const p = Math.round(Math.abs(rel) * 100);
-          this.add(rel > 0 ? TRENDS[k].up(p) : TRENDS[k].down(p), 'evolution');
+        const abs = T.GENES[k].absolute;
+        const change = abs ? w.last.avg[k] - base : (w.last.avg[k] - base) / base;
+        if (Math.abs(change) >= (abs ? 0.12 : 0.3) && this.ready('trend_' + k, 6)) {
+          const p = Math.round(Math.abs(change) * 100);
+          this.add(change > 0 ? TRENDS[k].up(p) : TRENDS[k].down(p), 'evolution');
           this.baseline[k] = w.last.avg[k];
         }
+      }
+      this.yearlyPredation();
+    }
+  }
+
+  // Once a year: species that have turned into hunters, and years ruled by predators.
+  yearlyPredation() {
+    const w = this.w;
+    for (const s of w.aliveSpecies()) {
+      if (s.hunterSince < 0 && s.centroid && s.centroid.diet >= T.PRED.HUNTER_DIET && s.count >= 8) {
+        s.hunterSince = w.tick;
+        const pct = Math.round(s.centroid.diet * 100);
+        this.add(`The ${s.name} have become hunters: ${pct}% of their food now comes from other creatures.`, 'predation');
+      }
+    }
+    const d = w.lastYearDeaths;
+    if (d) {
+      const total = d.starvation + d['old age'] + d.predation;
+      if (total >= 30 && d.predation / total >= 0.45 && this.ready('predators-rule', 8)) {
+        this.add(`A year of fear: ${Math.round((d.predation / total) * 100)}% of all deaths last year came from predators.`, 'predation');
       }
     }
   }
@@ -129,6 +171,11 @@ T.Chronicle = class {
   }
 
   onDeath(c) {
+    if (c.cause === 'predation' && !this.w.firstKill) {
+      this.w.firstKill = true;
+      const k = c.killer;
+      this.add(`Blood in the terrarium: ${k.name} of the ${this.speciesName(k.species)} kills and eats ${c.name} of the ${this.speciesName(c.species)}. For the first time, one creature has fed on another.`, 'predation');
+    }
     if (c.cause !== 'old age' || c.age <= this.elderRecord) return;
     this.elderRecord = c.age;
     if (this.w.tick > 5 * T.CFG.year && this.ready('elder', 8)) {
@@ -139,12 +186,11 @@ T.Chronicle = class {
     }
   }
 
-  onSpeciation(s, parent) {
-    this.add(`A new species emerges: the ${s.name}, descended from the ${parent.name}.`, 'species');
-    this.soleSpecies = -1;
-  }
+  // Splits are recorded but not reported yet: most branches die out within a year or two.
+  onSpeciation() {}
 
   onSpeciesGone(s, successor) {
+    if (!s.announced) return;
     const years = T.yearOf(this.w.tick - s.born);
     const span = years < 1 ? 'less than a year' : plural(years, 'year');
     if (successor) {

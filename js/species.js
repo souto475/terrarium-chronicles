@@ -21,8 +21,12 @@ T.Species = class {
     this.firstCentroid = null;
     this.hue = hue;
     this.peakAt = tick;
-    this.deaths = { starvation: 0, 'old age': 0 };
-    this.deathsAtPeak = { starvation: 0, 'old age': 0 };
+    this.deaths = { starvation: 0, 'old age': 0, predation: 0 };
+    this.deathsAtPeak = { starvation: 0, 'old age': 0, predation: 0 };
+    this.kills = 0;
+    this.killedBy = {};     // species id -> members of this species it has eaten
+    this.hunterSince = -1;
+    this.announced = !parent;   // new species only make the news once they establish themselves
     this.childIds = [];
     this.successorId = -1;
     this.avgAtEnd = null;   // world's average genes when the species ended, for comparison
@@ -35,15 +39,16 @@ T.circularMeanHue = function (sumCos, sumSin) {
 };
 
 T.updateCentroids = function (w) {
-  const acc = w.species.map(() => ({ n: 0, size: 0, speed: 0, sense: 0, repro: 0, mutation: 0, cos: 0, sin: 0 }));
+  const keys = T.TRAIT_KEYS;
+  const acc = w.species.map(() => {
+    const a = { n: 0, cos: 0, sin: 0 };
+    for (const k of keys) a[k] = 0;
+    return a;
+  });
   for (const c of w.creatures) {
     const a = acc[c.species], g = c.genes;
     a.n++;
-    a.size += g.size;
-    a.speed += g.speed;
-    a.sense += g.sense;
-    a.repro += g.repro;
-    a.mutation += g.mutation;
+    for (const k of keys) a[k] += g[k];
     const h = (g.hue * Math.PI) / 180;
     a.cos += Math.cos(h);
     a.sin += Math.sin(h);
@@ -52,11 +57,10 @@ T.updateCentroids = function (w) {
     const a = acc[s.id];
     if (!a.n) continue;
     s.hue = T.circularMeanHue(a.cos, a.sin);
-    s.centroid = {
-      size: a.size / a.n, speed: a.speed / a.n, sense: a.sense / a.n,
-      repro: a.repro / a.n, mutation: a.mutation / a.n, hue: s.hue,
-    };
-    if (!s.firstCentroid) s.firstCentroid = s.centroid;
+    const cen = { hue: s.hue };
+    for (const k of keys) cen[k] = a[k] / a.n;
+    s.centroid = cen;
+    if (!s.firstCentroid) s.firstCentroid = cen;
   }
 };
 

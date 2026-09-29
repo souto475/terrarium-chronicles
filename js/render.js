@@ -2,6 +2,7 @@
 // Draws the world on the canvas, with a camera (zoom and pan).
 
 const HUE_BUCKETS = 72; // 5° each: indistinguishable from exact colors at this size
+const HUNTER_RING = 'rgba(228, 88, 72, 0.9)';
 const BUCKET_COLORS = [];
 for (let i = 0; i < HUE_BUCKETS; i++) BUCKET_COLORS.push(T.hueColor(i * (360 / HUE_BUCKETS)));
 
@@ -133,6 +134,20 @@ T.Renderer = class {
       ctx.fill();
       if (detail) ctx.stroke();
     }
+
+    // Hunters wear a red ring, visible at any zoom.
+    ctx.strokeStyle = HUNTER_RING;
+    ctx.lineWidth = Math.max(1.2, 1.6 / cam.z);
+    ctx.beginPath();
+    for (const b of buckets) {
+      for (const c of b) {
+        if (!c.isHunter) continue;
+        const rr = c.radius + Math.max(1.5, 2 / cam.z);
+        ctx.moveTo(c.x + rr, c.y);
+        ctx.arc(c.x, c.y, rr, 0, TAU);
+      }
+    }
+    ctx.stroke();
 
     if (detail) {
       ctx.fillStyle = 'rgba(10, 12, 10, 0.85)';
