@@ -24,7 +24,7 @@ if (!label || !years || !seeds.length) {
 }
 const root = path.join(__dirname, '..', 'js');
 const overrides = (process.env.OVERRIDES || '').split(',').filter(Boolean).map((s) => s.split('='));
-const SIM_FILES = ['util', 'genes', 'creature', 'species', 'chronicle', 'world'];
+const SIM_FILES = ['util', 'genes', 'creature', 'species', 'chronicle', 'regions', 'world'];
 
 function loadWorld(seed) {
   const ctx = { console, Math, performance };

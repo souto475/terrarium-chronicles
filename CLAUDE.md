@@ -30,7 +30,7 @@ plays each version and reports what they see. That split is the point of the who
 
 ## Testing
 
-- The simulation files (`util`, `genes`, `creature`, `species`, `chronicle`, `world`) have no DOM
+- The simulation files (`util`, `genes`, `creature`, `species`, `chronicle`, `regions`, `world`) have no DOM
   dependencies: load them into a Node `vm` context with `globalThis` and step a `new T.World(seed)`.
   Run several seeds for decades before judging a balance change.
 - `tools/batch.js` runs many seeds headless and summarizes them; `OVERRIDES='NAME=value'` swaps

@@ -106,6 +106,17 @@ it was saved; with no seed, the most recent world resumes. "New world" always st
 - `SAVE_VERSION` in `save.js` must be bumped whenever the simulation's stored state changes
   (new gene, new creature field); older saves are then ignored instead of breaking.
 
+**Named regions.** `regions.js` flood-fills fertile (≥ 0.35) and barren (≤ 0.05) patches of
+the vegetation grid, cuts big patches into ~170-cell pieces (farthest-point seeds, nearest-seed
+assignment; otherwise one sprawling meadow hosted every event) and names them in a place-name
+style ("Hartcrest Fens") so they never read like species names (a first version reused the
+species syllables and produced "the Ensu in the Ensu Fields"). Regions use their own RNG stream,
+so worlds and saves are unaffected (verified: save/restore still identical, seed 949118
+unchanged, and a save made before regions existed still loads). Used in: founding ("Each finds
+a home"), first kill, new species, hunters, extinctions ("The last of them died in…") and
+species cards ("Most of them live in…"). Labels are drawn in italic serif at a constant screen
+size; small regions only appear when zoomed in.
+
 Next:
 - Watch whether speed pinned near its max (3) needs a rethink.
 - Still waiting on monitor readings for the stutters.

@@ -165,6 +165,22 @@ T.Renderer = class {
     }
   }
 
+  drawRegionNames() {
+    const ctx = this.ctx, cam = this.cam;
+    const px = 12 / cam.z;   // constant on-screen size, whatever the zoom
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `italic ${px}px Fraunces, Georgia, serif`;
+    for (const r of this.w.regions.list) {
+      // Small regions only get a label once you zoom in on them.
+      if (r.size * cam.z * cam.z < 20) continue;
+      ctx.fillStyle = r.kind === 'barren' ? 'rgba(214, 196, 170, 0.32)' : 'rgba(226, 232, 206, 0.34)';
+      ctx.fillText(r.name, r.lx, r.ly);
+    }
+    ctx.restore();
+  }
+
   draw() {
     const ctx = this.ctx, w = this.w, cam = this.cam;
     if (!this.dragging) this.constrain(false);
@@ -188,6 +204,7 @@ T.Renderer = class {
     ctx.strokeStyle = 'rgba(230, 226, 214, 0.12)';
     ctx.lineWidth = 1 / cam.z;
     ctx.strokeRect(0, 0, w.W, w.H);
+    this.drawRegionNames();
     this.drawCreatures();
 
     const s = this.selected;

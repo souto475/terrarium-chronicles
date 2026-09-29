@@ -26,6 +26,7 @@ T.Species = class {
     this.kills = 0;
     this.killedBy = {};     // species id -> members of this species it has eaten
     this.hunterSince = -1;
+    this.lastPlace = '';        // where the last one died, for extinct species
     this.announced = !parent;   // new species only make the news once they establish themselves
     this.childIds = [];
     this.successorId = -1;

@@ -83,6 +83,12 @@ T.Chronicle = class {
     const names = w.species.map((s) => 'the ' + s.name);
     const list = names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
     this.add(`The first ${w.creatures.length} creatures awaken in the terrarium, split into ${w.species.length} species: ${list}.`, 'founding');
+    const homes = w.species.map((s) => ({ s, place: T.rangeOf(w, s.id) })).filter((h) => h.place);
+    if (homes.length) {
+      const parts = homes.map((h) => `the ${h.s.name} ${h.place}`);
+      const joined = parts.length === 1 ? parts[0] : parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+      this.add(`Each finds a home: ${joined}.`, 'founding');
+    }
     this.baseline = Object.assign({}, w.last.avg);
     while (this.nextPop < POP_MILESTONES.length && POP_MILESTONES[this.nextPop] <= w.creatures.length) this.nextPop++;
   }
@@ -111,7 +117,8 @@ T.Chronicle = class {
       if ((lasted && s.count >= ESTABLISHED_MIN) || s.count >= ESTABLISHED_COUNT) {
         s.announced = true;
         const parent = w.species[s.parentId];
-        this.add(`A new species has taken hold: the ${s.name}, who branched off from the ${parent.name} in year ${T.yearOf(s.born)}, now number ${s.count}.`, 'species');
+        const where = T.rangeOf(w, s.id);
+        this.add(`A new species has taken hold ${where ? where + ': ' : ': '}the ${s.name}, who branched off from the ${parent.name} in year ${T.yearOf(s.born)}, now number ${s.count}.`, 'species');
         this.soleSpecies = -1;
       }
     }
@@ -149,7 +156,8 @@ T.Chronicle = class {
         s.hunterSince = w.tick;
         s.announced = true;   // making the news as hunters puts them on the record
         const pct = Math.round(s.centroid.diet * 100);
-        this.add(`The ${s.name} have become hunters: ${pct}% of their food now comes from other creatures.`, 'predation');
+        const where = T.rangeOf(w, s.id);
+        this.add(`The ${s.name} have become hunters${where ? ' ' + where : ''}: ${pct}% of their food now comes from other creatures.`, 'predation');
       }
     }
     const d = w.lastYearDeaths;
@@ -175,7 +183,8 @@ T.Chronicle = class {
     if (c.cause === 'predation' && !this.w.firstKill) {
       this.w.firstKill = true;
       const k = c.killer;
-      this.add(`Blood in the terrarium: ${k.name} of the ${this.speciesName(k.species)} kills and eats ${c.name} of the ${this.speciesName(c.species)}. For the first time, one creature has fed on another.`, 'predation');
+      const where = T.placeOf(this.w, c.x, c.y);
+      this.add(`Blood ${where || 'in the terrarium'}: ${k.name} of the ${this.speciesName(k.species)} kills and eats ${c.name} of the ${this.speciesName(c.species)}. For the first time, one creature has fed on another.`, 'predation');
     }
     if (c.cause !== 'old age' || c.age <= this.elderRecord) return;
     this.elderRecord = c.age;
@@ -197,7 +206,8 @@ T.Chronicle = class {
     if (successor) {
       this.add(`The ${s.name} are no more: after ${span}, every one of them has become ${successor.name}.`, 'extinction');
     } else {
-      this.add(`The ${s.name} go extinct after ${span}. At their peak there were ${s.peak} of them.`, 'extinction');
+      const where = s.lastPlace ? ` The last of them died ${s.lastPlace}.` : '';
+      this.add(`The ${s.name} go extinct after ${span}. At their peak there were ${s.peak} of them.${where}`, 'extinction');
     }
     const alive = this.w.aliveSpecies();
     if (alive.length === 1 && this.soleSpecies !== alive[0].id) {

@@ -58,6 +58,9 @@ with every push to `main`. Or clone the repo and open `index.html`: no install, 
 - Species cards: hover a species to see its population curve, what makes it distinct, its
   ancestors and descendants and, for extinct ones, how it ended (hunger, old age, a rival
   that grew while it shrank, or a slow transformation into another species).
+- Geography: the map's fertile and barren patches become named regions ("Hartcrest Fens",
+  "Morford Waste"), labelled on the map, and the chronicle says where things happen: where a
+  species takes hold, where the first blood was spilled, where the last of a species died.
 - A tree of life (**T**): every species as a stream along the timeline, as thick as its population,
   branching from its ancestor. Short-lived branches are hidden unless you ask for them.
 - Panels: census, living species with their color spread (extinct ones folded away), a
@@ -77,7 +80,7 @@ with every push to `main`. Or clone the repo and open `index.html`: no install, 
    devlog, session 4.
 5. **Territory and conflict**: herds holding ground, fights between groups, migration.
 6. **Culture**: traits passed on by imitation rather than genes (rituals, preferences, simple "technologies").
-7. **World and history**: climate events, disasters, a map with place names, a timeline, one newspaper per era.
+7. **World and history**: climate events, disasters, ~~a map with place names~~ (done), a timeline, one newspaper per era.
 
 ## Technical decisions
 
@@ -194,6 +197,7 @@ with regular splits and extinctions.
 | `js/species.js` | Species records and speciation |
 | `js/world.js` | Vegetation grid, seasons, spatial grid, the `step()` loop, census |
 | `js/save.js` | Saving and resuming worlds (localStorage) |
+| `js/regions.js` | Named regions and place phrases |
 | `js/chronicle.js` | Watches events and writes headlines |
 | `js/render.js` | Canvas, camera, drawing |
 | `js/ui.js` | Panels: chronicle, census, species and species cards, chart, evolution, inspector |

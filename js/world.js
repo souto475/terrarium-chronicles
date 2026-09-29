@@ -38,6 +38,8 @@ T.World = class {
       }
     }
 
+    this.regions = T.buildRegions(this);
+
     // Climate: amplitude of the seasons. Above 1, winter stops regrowth for a while.
     this.climate = this.rng.range(0.7, 2.6);
     this.tick = 0;
@@ -233,7 +235,10 @@ T.World = class {
     const s = this.species[c.species];
     s.deaths[c.cause]++;
     s.count--;
-    if (s.count === 0) this.speciesGone(s, null);
+    if (s.count === 0) {
+      s.lastPlace = T.placeOf(this, c.x, c.y);
+      this.speciesGone(s, null);
+    }
   }
 
   // `successor` is set when the species didn't die out but turned entirely into a new one.

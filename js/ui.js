@@ -294,6 +294,8 @@ T.UI = class {
       : `were one of the ${w.species.filter((x) => x.parentId < 0).length} founding species`;
     if (alive) {
       story.push(`The ${name(s)} ${origin}, ${span} ago.`);
+      const range = T.rangeOf(w, s.id);
+      if (range) story.push(`Most of them live ${range}.`);
       if (s.peak > s.count * 1.15) story.push(`They peaked at ${s.peak} in year ${Y(s.peakAt)}.`);
       else story.push('They are near the largest they have ever been.');
     } else {
@@ -373,7 +375,7 @@ T.UI = class {
       if (g > gain) { gain = g; rival = other; }
     }
     if (rival) parts.push(`Meanwhile the ${esc(rival.name)} grew from ${a[rival.id] || 0} to ${b[rival.id]}.`);
-    parts.push(`The last one died in year ${Y(s.extinctAt)}.`);
+    parts.push(`The last one died in year ${Y(s.extinctAt)}${s.lastPlace ? ' ' + esc(s.lastPlace) : ''}.`);
     return parts.join(' ');
   }
 
