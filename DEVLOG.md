@@ -41,8 +41,8 @@ Changes:
   with the average creature at the time.
   - New tracking: per-species deaths by cause (and a snapshot at peak), peak year, child species,
     successor, world averages at extinction, and a yearly census of every species
-    ().
--  now also exposes  and .
+    (`world.speciesYearly`).
+- `window.terrarium` now also exposes `ui` and `perf`.
 
 Next:
 - Get monitor readings from a real stutter. If long frames are mostly "browser", look at paint
