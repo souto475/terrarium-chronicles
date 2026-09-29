@@ -1,6 +1,10 @@
 'use strict';
 // Draws the world on the canvas, with a camera (zoom and pan).
 
+const HUE_BUCKETS = 72; // 5° each: indistinguishable from exact colors at this size
+const BUCKET_COLORS = [];
+for (let i = 0; i < HUE_BUCKETS; i++) BUCKET_COLORS.push(T.hueColor(i * (360 / HUE_BUCKETS)));
+
 T.Renderer = class {
   constructor(canvas) {
     this.cv = canvas;
@@ -24,6 +28,8 @@ T.Renderer = class {
     this.foodCv.height = w.rows;
     this.foodCtx = this.foodCv.getContext('2d');
     this.img = this.foodCtx.createImageData(w.cols, w.rows);
+    this.foodTick = -1;
+    this.foodAt = 0;
     this.resize();
     this.fit();
   }
@@ -97,6 +103,53 @@ T.Renderer = class {
     this.foodCtx.putImageData(this.img, 0, 0);
   }
 
+  // Creatures are grouped into hue buckets and each bucket is drawn as a single path:
+  // a few dozen fill calls per frame instead of one (or three) per creature.
+  drawCreatures() {
+    const ctx = this.ctx, cam = this.cam, TAU = Math.PI * 2;
+    if (!this.buckets) this.buckets = Array.from({ length: HUE_BUCKETS }, () => []);
+    const buckets = this.buckets;
+    for (const b of buckets) b.length = 0;
+
+    // Only draw what's on screen.
+    const tl = this.screenToWorld(0, 0), br = this.screenToWorld(this.cw, this.ch);
+    for (const c of this.w.creatures) {
+      if (c.x < tl.x - 10 || c.x > br.x + 10 || c.y < tl.y - 10 || c.y > br.y + 10) continue;
+      buckets[Math.round(c.genes.hue / (360 / HUE_BUCKETS)) % HUE_BUCKETS].push(c);
+    }
+
+    const detail = cam.z > 0.9;
+    ctx.lineWidth = Math.max(0.6, 1 / cam.z);
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+    for (let i = 0; i < HUE_BUCKETS; i++) {
+      const b = buckets[i];
+      if (!b.length) continue;
+      ctx.fillStyle = BUCKET_COLORS[i];
+      ctx.beginPath();
+      for (const c of b) {
+        ctx.moveTo(c.x + c.radius, c.y);
+        ctx.arc(c.x, c.y, c.radius, 0, TAU);
+      }
+      ctx.fill();
+      if (detail) ctx.stroke();
+    }
+
+    if (detail) {
+      ctx.fillStyle = 'rgba(10, 12, 10, 0.85)';
+      ctx.beginPath();
+      for (const b of buckets) {
+        for (const c of b) {
+          const ex = c.x + Math.cos(c.heading) * c.radius * 0.55;
+          const ey = c.y + Math.sin(c.heading) * c.radius * 0.55;
+          const er = c.radius * 0.28;
+          ctx.moveTo(ex + er, ey);
+          ctx.arc(ex, ey, er, 0, TAU);
+        }
+      }
+      ctx.fill();
+    }
+  }
+
   draw() {
     const ctx = this.ctx, w = this.w, cam = this.cam;
     if (!this.dragging) this.constrain(false);
@@ -108,32 +161,19 @@ T.Renderer = class {
     ctx.scale(cam.z, cam.z);
     ctx.translate(-cam.x, -cam.y);
 
-    this.updateFood();
+    // Vegetation changes slowly: re-upload its image at most ~10 times a second.
+    const now = performance.now();
+    if (w.tick !== this.foodTick && now - this.foodAt > 100) {
+      this.updateFood();
+      this.foodTick = w.tick;
+      this.foodAt = now;
+    }
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(this.foodCv, 0, 0, w.W, w.H);
     ctx.strokeStyle = 'rgba(230, 226, 214, 0.12)';
     ctx.lineWidth = 1 / cam.z;
     ctx.strokeRect(0, 0, w.W, w.H);
-
-    // Only draw what's on screen.
-    const tl = this.screenToWorld(0, 0), br = this.screenToWorld(this.cw, this.ch);
-    const detail = cam.z > 0.9;
-    ctx.lineWidth = Math.max(0.6, 1 / cam.z);
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
-    for (const c of w.creatures) {
-      if (c.x < tl.x - 10 || c.x > br.x + 10 || c.y < tl.y - 10 || c.y > br.y + 10) continue;
-      ctx.fillStyle = c.color;
-      ctx.beginPath();
-      ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
-      ctx.fill();
-      if (detail) {
-        ctx.stroke();
-        ctx.fillStyle = 'rgba(10, 12, 10, 0.85)';
-        ctx.beginPath();
-        ctx.arc(c.x + Math.cos(c.heading) * c.radius * 0.55, c.y + Math.sin(c.heading) * c.radius * 0.55, c.radius * 0.28, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
+    this.drawCreatures();
 
     const s = this.selected;
     if (s && s.alive) {

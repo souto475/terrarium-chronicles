@@ -18,7 +18,14 @@ T.Species = class {
     this.count = 0;
     this.peak = 0;
     this.centroid = null;
+    this.firstCentroid = null;
     this.hue = hue;
+    this.peakAt = tick;
+    this.deaths = { starvation: 0, 'old age': 0 };
+    this.deathsAtPeak = { starvation: 0, 'old age': 0 };
+    this.childIds = [];
+    this.successorId = -1;
+    this.avgAtEnd = null;   // world's average genes when the species ended, for comparison
     world.species.push(this);
   }
 };
@@ -49,6 +56,7 @@ T.updateCentroids = function (w) {
       size: a.size / a.n, speed: a.speed / a.n, sense: a.sense / a.n,
       repro: a.repro / a.n, mutation: a.mutation / a.n, hue: s.hue,
     };
+    if (!s.firstCentroid) s.firstCentroid = s.centroid;
   }
 };
 
@@ -80,6 +88,7 @@ T.speciate = function (w) {
     const parent = w.species[parentId];
 
     const s = new T.Species(w, parent, cl.seed.hue, w.tick);
+    parent.childIds.push(s.id);
     for (const c of cl.members) {
       w.species[c.species].count--;
       c.species = s.id;
@@ -90,7 +99,10 @@ T.speciate = function (w) {
     // A species whose every member moved into the new one has transformed rather than died out.
     for (const id of votes.keys()) {
       const old = w.species[id];
-      if (old.count === 0) w.speciesGone(old, s);
+      if (old.count === 0) {
+        old.successorId = s.id;
+        w.speciesGone(old, s);
+      }
     }
   }
   T.updateCentroids(w);

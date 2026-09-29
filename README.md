@@ -34,7 +34,8 @@ with every push to `main`. Or clone the repo and open `index.html`: no install, 
 
 - The number after `#` in the URL is the world seed: `index.html#42` always produces the same world.
 - **Space** pause · **1–4** speed · **scroll** zoom · **drag** pan · **0** reset view ·
-  **click** a creature to inspect it · **F** follow it · **Esc** deselect.
+  **click** a creature to inspect it · **F** follow it · **Esc** deselect · **P** performance monitor.
+- Hover a species in the panel (or tap it on a phone) to read its story.
 
 ## What's in it so far
 
@@ -46,8 +47,13 @@ with every push to `main`. Or clone the repo and open `index.html`: no install, 
   its own name and a record of its ancestor.
 - The chronicle: population milestones, famines, generation records, evolutionary trends,
   new species, extinctions and obituaries.
+- Species cards: hover a species to see its population curve, what makes it distinct, its
+  ancestors and descendants and, for extinct ones, how it ended (hunger, old age, a rival
+  that grew while it shrank, or a slow transformation into another species).
 - Panels: census, full-history chart, living and extinct species, average genes compared with
   the founders, color distribution, and an inspector for any creature.
+- A performance monitor (**P**) that splits each slow frame into simulation, drawing, panels and
+  time spent by the browser itself. It exists to track down the occasional stutter.
 
 ## Roadmap
 
@@ -78,7 +84,10 @@ with every push to `main`. Or clone the repo and open `index.html`: no install, 
   explodes. The panel shows the actual speed reached.
 - **Keeping the garbage collector quiet.** Dead creatures are compacted out of the list in place,
   color strings are cached, and names are generated only when someone looks at a creature.
-  Earlier versions allocated a new array every tick and stuttered from time to time.
+- **Cheap drawing.** Creatures are grouped into 72 hue buckets and each bucket is one canvas path,
+  so a frame makes a few dozen fill calls instead of thousands. The vegetation image is
+  re-uploaded at most ten times a second, and the side panels use CSS containment so a text
+  change in one doesn't relayout the page.
 
 ## Calibration decisions
 

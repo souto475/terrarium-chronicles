@@ -11,6 +11,44 @@ the live world.
 
 ---
 
+## Session 3 — 2026-09-28
+
+Feedback: stutters still happen now and then (world #949118, around year 73, ~1,200 creatures).
+The species panel works well; request: a hover card with each species' story and traits, and for
+extinct species how they lived and why they died. Camera: fine as is.
+
+Investigation (reproduced #949118 at year 72, 1,266 creatures; worlds are deterministic):
+- Simulation: 0.4 ms median per tick, occasional 4–9 ms ticks on ordinary ticks. Speciation costs
+  0.4–2 ms. Not the problem.
+- Drawing: median 2.6 ms, spikes to 35 ms. Components measured alone were all under 1 ms, but
+  measuring canvas work from a hidden browser pane is unreliable: with nothing presented, queued
+  GPU work piles up and flushes in bursts (one test showed a fake 1.8 s "frame"). The only
+  trustworthy numbers come from a visible page, hence the new monitor.
+
+Changes:
+- **Rendering:** creatures drawn in 72 hue buckets, one path per bucket (plus one path for all
+  eyes). Measured median draw went from 2.6 to 1.3 ms at ~1,450 creatures, spikes from 35 to 11 ms.
+  Vegetation image re-uploaded at most every 100 ms instead of every frame.
+- **CSS containment** on side panels, toast, cards and the stage.
+- Sim budget per frame 9 → 8 ms.
+- **Performance monitor (P):** fps, average/max sim, draw and UI time, and a list of long frames
+  (> 50 ms) with the unexplained remainder labelled "browser". In the (throttled) preview pane,
+  long frames were ~1–2 ms of our work plus 40–47 ms of browser time.
+- **Species card** on hover (tap on touch): status, a one-line trait summary ("Large and fast",
+  the two traits furthest from the average), a yearly population sparkline, the story (origin,
+  peak, descendants; for extinct species the dominant cause of death after the peak and the
+  rival that grew most in that window, or the species it transformed into), and traits compared
+  with the average creature at the time.
+  - New tracking: per-species deaths by cause (and a snapshot at peak), peak year, child species,
+    successor, world averages at extinction, and a yearly census of every species
+    ().
+-  now also exposes  and .
+
+Next:
+- Get monitor readings from a real stutter. If long frames are mostly "browser", look at paint
+  and compositing (DevTools Performance tab); if "sim", profile the tick.
+- Phylogenetic tree view; predation (step 4); save/load.
+
 ## Session 2 — 2026-09-28
 
 Feedback from the first test:

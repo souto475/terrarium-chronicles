@@ -41,6 +41,7 @@ T.World = class {
     this.maxGen = 0;
     this.species = [];
     this.usedNames = new Set();
+    this.speciesYearly = [];   // population of every species at the start of each year
     this.history = [];
     this.historyStride = 1;
     this.samples = 0;
@@ -51,6 +52,7 @@ T.World = class {
     this.last = this.census();
     this.foundingAvg = Object.assign({}, this.last.avg);
     this.history.push(this.last);
+    this.speciesYearly.push(this.species.map((s) => s.count));
     this.chronicle.onFounding();
   }
 
@@ -145,6 +147,7 @@ T.World = class {
     }
 
     if (this.tick % C.speciesEvery === 0 && list.length) T.speciate(this);
+    if (this.tick % C.year === 0) this.speciesYearly.push(this.species.map((s) => s.count));
 
     if (this.tick % C.sampleEvery === 0) {
       this.last = this.census();
@@ -157,7 +160,13 @@ T.World = class {
           this.historyStride *= 2;
         }
       }
-      for (const s of this.species) if (s.count > s.peak) s.peak = s.count;
+      for (const s of this.species) {
+        if (s.count > s.peak) {
+          s.peak = s.count;
+          s.peakAt = this.tick;
+          s.deathsAtPeak = Object.assign({}, s.deaths);
+        }
+      }
       this.chronicle.observe();
     }
   }
@@ -193,6 +202,7 @@ T.World = class {
     this.deathsByCause[c.cause]++;
     this.chronicle.onDeath(c);
     const s = this.species[c.species];
+    s.deaths[c.cause]++;
     s.count--;
     if (s.count === 0) this.speciesGone(s, null);
   }
@@ -200,6 +210,7 @@ T.World = class {
   // `successor` is set when the species didn't die out but turned entirely into a new one.
   speciesGone(s, successor) {
     s.extinctAt = this.tick;
+    s.avgAtEnd = Object.assign({}, this.last.avg);
     this.chronicle.onSpeciesGone(s, successor);
   }
 

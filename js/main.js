@@ -13,7 +13,8 @@
   // the time budget caps the real speed, and the panel shows it.
   let actualTicks = 1;
 
-  const SIM_BUDGET_MS = 9;
+  const SIM_BUDGET_MS = 8;
+  const perf = new T.PerfMonitor(document.getElementById('perf'));
 
   const ui = new T.UI({
     toggleFollow: () => { follow = !follow; },
@@ -48,10 +49,10 @@
   }
 
   function frame(now) {
+    const t0 = performance.now();
     if (!paused) {
       // Time budget: at high speeds, simulate as many ticks as fit in the frame,
       // leaving room for drawing so the animation stays smooth.
-      const t0 = performance.now();
       let n = 0;
       while (n < speed) {
         world.step();
@@ -60,6 +61,7 @@
       }
       actualTicks += (n - actualTicks) * 0.1;
     }
+    const t1 = performance.now();
     const s = renderer.selected;
     if (follow && s && s.alive) {
       renderer.cam.x += (s.x - renderer.cam.x) * 0.15;
@@ -68,10 +70,13 @@
       follow = false;
     }
     renderer.draw();
+    const t2 = performance.now();
     if (now - lastUI > 250) {
       ui.update(renderer.selected, paused, Math.max(1, Math.round(actualTicks)));
+      if (perf.visible) perf.render(world);
       lastUI = now;
     }
+    perf.record(now, t1 - t0, t2 - t1, performance.now() - t2);
     requestAnimationFrame(frame);
   }
 
@@ -100,6 +105,7 @@
     else if (e.key === '0') renderer.fit();
     else if (e.key === 'f' || e.key === 'F') { if (renderer.selected) follow = !follow; }
     else if (e.key === 'Escape') select(null);
+    else if (e.key === 'p' || e.key === 'P') perf.toggle(world);
   });
 
   // ---------- Camera and selection ----------
@@ -142,7 +148,7 @@
   }, { passive: false });
 
   // Handle for poking at the simulation from the browser console.
-  window.terrarium = { get world() { return world; }, renderer };
+  window.terrarium = { get world() { return world; }, renderer, ui, perf };
 
   const fromHash = parseInt(location.hash.slice(1), 10);
   setSpeed(1);

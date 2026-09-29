@@ -488,3 +488,131 @@ input[type='text'] {
   #panel { order: 1; border-left: 0; overflow: visible; }
   #chronicle { order: 2; border-right: 0; max-height: 70vh; }
 }
+
+/* ---------- Species card ---------- */
+
+#species li[data-id] { cursor: default; }
+#species li[data-id]:hover .name { color: var(--accent); }
+#species li.extinct[data-id]:hover .name { color: var(--muted); }
+
+#speciesCard {
+  position: fixed;
+  z-index: 20;
+  width: 264px;
+  padding: 14px;
+  background: rgba(18, 21, 19, 0.97);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.sc-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sc-head .dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.sc-head h3 {
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.sc-status {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.sc-traitline {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 13.5px;
+  color: var(--text);
+  margin: 10px 0 8px;
+}
+
+.sc-spark {
+  display: block;
+  width: 100%;
+  height: 34px;
+}
+
+.sc-axis {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+
+.sc-story {
+  font-family: var(--serif);
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin: 10px 0;
+}
+
+.sc-traits {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 3px 10px;
+  margin: 0;
+  font-size: 11.5px;
+}
+
+.sc-traits dt { color: var(--muted); }
+.sc-traits dd { margin: 0; font-family: var(--mono); text-align: right; }
+.sc-traits dd.up { color: var(--food); }
+.sc-traits dd.down { color: var(--danger); }
+.sc-traits dd.same { color: var(--faint); }
+
+.sc-foot {
+  font-size: 10px;
+  color: var(--faint);
+  margin-top: 8px;
+}
+
+/* ---------- Performance monitor ---------- */
+
+#perf {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  max-width: 420px;
+  padding: 10px 12px;
+  background: rgba(11, 13, 12, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+#perf .perf-title {
+  color: var(--text);
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+#perf .perf-title span { color: var(--faint); }
+#perf .perf-long { color: var(--text); margin-top: 4px; }
+#perf b { color: var(--accent); font-weight: 500; }
+
+/* Each panel lays out and paints on its own, so a text change in one doesn't make the
+   browser recompute the whole page. */
+#chronicle, #panel, #inspector, #perf, #speciesCard, #toast { contain: layout paint; }
+#stage { contain: strict; }
