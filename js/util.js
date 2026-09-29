@@ -27,6 +27,9 @@ T.makeRng = function (seed) {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+  // Saving and resuming a world needs the generator's exact position in its sequence.
+  r.getState = () => a;
+  r.setState = (s) => { a = s | 0; };
   r.range = (lo, hi) => lo + (hi - lo) * r();
   r.int = (lo, hi) => Math.floor(lo + (hi - lo + 1) * r());
   r.pick = (arr) => arr[Math.floor(r() * arr.length)];

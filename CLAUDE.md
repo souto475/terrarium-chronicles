@@ -38,6 +38,10 @@ plays each version and reports what they see. That split is the point of the who
   Adding a gene or any new random call changes every world, so compare configurations on the same
   code, not against old logs.
 - Worlds are deterministic per seed, so a tester's "world #N, year Y" can be reproduced exactly.
+  Changing the simulation changes what a seed produces, so after sim changes their old worlds
+  won't match any more.
+- Saves: bump `SAVE_VERSION` in `js/save.js` whenever stored state changes (a new gene, a new
+  creature field). Gene-derived values belong in `Creature.derive()`, not the constructor.
 - In the browser, `window.terrarium` exposes `world`, `renderer`, `ui` and `perf`. The preview
   pane is often hidden, which pauses animation and makes canvas timings unreliable.
 - GitHub: no `gh` CLI; git pushes with stored credentials, and the REST API can be called with the

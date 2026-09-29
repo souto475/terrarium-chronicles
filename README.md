@@ -35,6 +35,8 @@ Play the live version at **https://souto475.github.io/terrarium-chronicles/**, w
 with every push to `main`. Or clone the repo and open `index.html`: no install, no build, no server.
 
 - The number after `#` in the URL is the world seed: `index.html#42` always produces the same world.
+- Worlds save themselves in your browser every 30 seconds and when you leave. Come back (or
+  reload) and the last world resumes exactly where it was. The three most recent worlds are kept.
 - **Space** pause · **1–4** speed · **scroll** zoom · **drag** pan · **0** reset view ·
   **click** a creature to inspect it · **F** follow it · **Esc** deselect · **T** tree of life ·
   **P** performance monitor.
@@ -99,6 +101,11 @@ with every push to `main`. Or clone the repo and open `index.html`: no install, 
   explodes. The panel shows the actual speed reached.
 - **Keeping the garbage collector quiet.** Dead creatures are compacted out of the list in place,
   color strings are cached, and names are generated only when someone looks at a creature.
+- **Saves that resume exactly.** A save holds every creature field, the vegetation, the species,
+  the chronicle's memory and the random generator's position, so a resumed world follows the same
+  path it would have taken without stopping (verified headless: save at year 40, run both 30 more
+  years, identical). Fields that follow from the genes are recomputed instead of stored, and
+  creatures are stored as columns, which keeps a save at a few hundred KB and ~3 ms to write.
 - **Cheap drawing.** Creatures are grouped into 72 hue buckets and each bucket is one canvas path,
   so a frame makes a few dozen fill calls instead of thousands. The vegetation image is
   re-uploaded at most ten times a second, and the side panels use CSS containment so a text
@@ -186,6 +193,7 @@ with regular splits and extinctions.
 | `js/creature.js` | A creature: grazing, hunting, fleeing, metabolism, breeding, death |
 | `js/species.js` | Species records and speciation |
 | `js/world.js` | Vegetation grid, seasons, spatial grid, the `step()` loop, census |
+| `js/save.js` | Saving and resuming worlds (localStorage) |
 | `js/chronicle.js` | Watches events and writes headlines |
 | `js/render.js` | Canvas, camera, drawing |
 | `js/ui.js` | Panels: chronicle, census, species and species cards, chart, evolution, inspector |

@@ -3,6 +3,8 @@
 
 let NEXT_ID = 1;
 T.resetIds = () => { NEXT_ID = 1; };
+T.getNextId = () => NEXT_ID;
+T.setNextId = (n) => { NEXT_ID = n; };
 
 // Predation rules.
 const HUNT_MIN_DIET = 0.2;     // below this, a creature never bothers hunting
@@ -44,21 +46,27 @@ T.Creature = class {
     this.cause = '';
     this.killer = null;
 
-    // Traits derived from genes: being big is expensive, but stores more energy,
-    // eats faster, lives longer and makes you harder to eat. Speed costs quadratically.
-    const s = genes.size;
+    this.derive();
+    this.energy = Math.min(energy, this.maxEnergy);
+    this.maxAge = T.CFG.year * (3 + 1.5 * genes.size) * rng.range(0.85, 1.15);
+  }
+
+  // Traits that follow from the genes alone. Kept in one place so a saved creature can be
+  // rebuilt from its genes with exactly the same numbers.
+  // Being big is expensive, but stores more energy, eats faster, lives longer and makes you
+  // harder to eat. Speed costs quadratically.
+  derive() {
+    const genes = this.genes, s = genes.size;
     this.mass = s * s;
     this.radius = 2 + 2.4 * s;
     this.maxEnergy = 50 * this.mass;
-    this.energy = Math.min(energy, this.maxEnergy);
-    this.maxAge = T.CFG.year * (3 + 1.5 * s) * rng.range(0.85, 1.15);
     this.maturity = T.CFG.year * 0.35;
     this.stepLen = genes.speed * 0.9;
     this.bite = 0.25 * this.mass;
     this.baseCost = 0.006 + 0.01 * Math.pow(this.mass, 0.75) + 0.00005 * genes.sense;
     this.moveCost = 0.006 * this.mass * genes.speed * genes.speed;
-    // Digestion: a gut tuned for meat is worse at plants, and vice versa. The square root makes
-    // the first steps toward meat pay off quickly, so hunting can evolve out of grazing.
+    // Digestion: a gut tuned for meat is worse at plants, and vice versa. The 0.75 exponent lets
+    // the first steps toward meat pay off a little, so hunting can evolve out of grazing.
     this.plantEff = 1 - genes.diet;
     this.meatEff = Math.pow(genes.diet, 0.75);
     this.hunter = genes.diet >= HUNT_MIN_DIET;
@@ -269,3 +277,7 @@ T.Creature = class {
 };
 
 T.PRED = { HUNT_MIN_DIET, PREY_MAX_MASS, THREAT_MIN_DIET, HUNTER_DIET };
+
+// Fields derive() recomputes, so saves can leave them out.
+T.Creature.DERIVED = ['mass', 'radius', 'maxEnergy', 'maturity', 'stepLen', 'bite', 'baseCost', 'moveCost',
+  'plantEff', 'meatEff', 'hunter', 'dangerous', 'isHunter', 'color'];

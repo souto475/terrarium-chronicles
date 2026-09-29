@@ -90,8 +90,23 @@ species list or a species' alive/extinct status changes.
   Cards with many descendants listed all of them (17 in one case); now the three most successful
   plus a count.
 
+**Saving and resuming worlds.** Autosave to localStorage every 30 s and on `pagehide` /
+hidden tab, one save per seed, the 3 most recent kept. On load, the seed in the URL resumes if
+it was saved; with no seed, the most recent world resumes. "New world" always starts fresh.
+- Exact resumption was the requirement: the save includes the RNG state (`rng.getState()`), the
+  creature id counter, every creature field (prey stored as an id), full-precision vegetation and
+  the chronicle's cooldowns and milestones. Headless test: save at year 40, run original and
+  restored copies 30 more years, compare population, species, chronicle, RNG state and a hash of
+  every position and energy: identical on seeds 949118, 7 and 42.
+  (A first run of that test "diverged" only because both worlds shared the module-level id
+  counter in one process; the browser only ever has one world.)
+- Size: 651 KB at ~600 creatures at first. Moving gene-derived fields into `Creature.derive()`
+  (used by both the constructor and restore) and storing creatures as columns brought it to
+  339 KB. Writing takes ~3 ms in the browser.
+- `SAVE_VERSION` in `save.js` must be bumped whenever the simulation's stored state changes
+  (new gene, new creature field); older saves are then ignored instead of breaking.
+
 Next:
-- Saving worlds across reloads.
 - Watch whether speed pinned near its max (3) needs a rethink.
 - Still waiting on monitor readings for the stutters.
 

@@ -679,3 +679,5 @@ input[type='text'] {
 .tree-name { fill: var(--text); font-family: var(--serif); font-size: 12px; }
 .tree-sp.gone .tree-name { fill: var(--faint); }
 .tree-count { fill: var(--muted); font-family: var(--mono); font-size: 10px; }
+
+#saveNote { margin-top: 8px; }

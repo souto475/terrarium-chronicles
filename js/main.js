@@ -28,14 +28,41 @@
     ui.updateInspector(c);
   }
 
-  function newWorld(seed) {
-    world = new T.World(seed);
+  // Starts a world: a fresh one, or a saved one when resuming.
+  function newWorld(seed, resumed) {
+    world = resumed || new T.World(seed);
+    lastSavedTick = resumed ? world.tick : -1;
     renderer.setWorld(world);
     select(null);
     ui.bindWorld(world);
     ui.update(null, paused, speed);
     history.replaceState(null, '', '#' + world.seed);
+    updateSaveNote();
   }
+
+  // ---------- Saving ----------
+
+  const AUTOSAVE_MS = 30000;
+  let lastSavedTick = -1;
+  let saveFailed = false;
+
+  function saveNow() {
+    if (!world || world.tick === lastSavedTick) return;
+    saveFailed = !T.Save.save(world);
+    if (!saveFailed) lastSavedTick = world.tick;
+    updateSaveNote();
+  }
+
+  function updateSaveNote() {
+    const el = document.getElementById('saveNote');
+    if (saveFailed) el.textContent = "Couldn't save: browser storage is full or disabled";
+    else if (lastSavedTick >= 0) el.textContent = `Saved at year ${T.yearOf(lastSavedTick)} · resumes when you come back`;
+    else el.textContent = 'Autosaves every 30 seconds';
+  }
+
+  setInterval(saveNow, AUTOSAVE_MS);
+  window.addEventListener('pagehide', saveNow);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
 
   function setSpeed(s) {
     speed = s;
@@ -151,8 +178,12 @@
   // Handle for poking at the simulation from the browser console.
   window.terrarium = { get world() { return world; }, renderer, ui, perf };
 
+  // Resume the world in the URL if it was saved, or the most recent save when there's no seed.
   const fromHash = parseInt(location.hash.slice(1), 10);
+  const bootSeed = Number.isFinite(fromHash) && fromHash > 0 ? fromHash : T.Save.latestSeed() || randomSeed();
   setSpeed(1);
-  newWorld(Number.isFinite(fromHash) && fromHash > 0 ? fromHash : randomSeed());
+  const saved = T.Save.load(bootSeed);
+  newWorld(bootSeed, saved);
+  if (saved) ui.toast(`Welcome back. World #${saved.seed} resumes in year ${T.yearOf(saved.tick)}.`);
   requestAnimationFrame(frame);
 })();
