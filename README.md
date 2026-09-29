@@ -1,5 +1,7 @@
 # Terrarium Chronicles
 
+**[▶ Play it in your browser](https://souto475.github.io/terrarium-chronicles/)**
+
 An artificial-life terrarium with a newspaper attached. Creatures with genes eat, compete,
 breed with mutations and die. Over generations they drift apart into new species. A chronicle
 watches the simulation and writes the history of the world as headlines:
@@ -27,7 +29,8 @@ also how Claude picks up where it left off, since each session starts with no me
 
 ## Running it
 
-Open `index.html` in a browser. No install, no build, no server.
+Play the live version at **https://souto475.github.io/terrarium-chronicles/**, which updates
+with every push to `main`. Or clone the repo and open `index.html`: no install, no build, no server.
 
 - The number after `#` in the URL is the world seed: `index.html#42` always produces the same world.
 - **Space** pause · **1–4** speed · **scroll** zoom · **drag** pan · **0** reset view ·
