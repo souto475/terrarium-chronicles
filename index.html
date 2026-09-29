@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Terrarium Chronicles</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <aside id="chronicle">
+      <header class="paper-head">
+        <div class="kicker">Continuous edition</div>
+        <h1>Terrarium Chronicles</h1>
+        <div class="paper-meta">
+          <span id="seedLabel">World</span>
+          <span id="clock">Year 0</span>
+        </div>
+      </header>
+      <ol id="entries"></ol>
+    </aside>
+
+    <main id="stage">
+      <canvas id="world"></canvas>
+      <div id="toast" aria-live="polite"></div>
+      <div id="inspector" hidden></div>
+      <div id="hint">Click a creature to inspect · scroll: zoom · drag: pan · 0: reset view</div>
+    </main>
+
+    <aside id="panel">
+      <section class="controls">
+        <div class="row">
+          <button id="playBtn" class="btn primary" title="Space">Pause</button>
+          <div class="seg" id="speedSeg" role="group" aria-label="Speed">
+            <button data-speed="1" title="Key 1">1×</button>
+            <button data-speed="4" title="Key 2">4×</button>
+            <button data-speed="16" title="Key 3">16×</button>
+            <button data-speed="64" title="Key 4">64×</button>
+          </div>
+        </div>
+        <div id="actualSpeed" class="note"></div>
+        <div class="row">
+          <input id="seedInput" type="text" inputmode="numeric" placeholder="seed" aria-label="World seed">
+          <button id="newBtn" class="btn">New world</button>
+          <button id="diceBtn" class="btn icon" title="Random seed" aria-label="Random seed">⚄</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Census</h2>
+        <dl class="stats">
+          <div><dt>Population</dt><dd id="sPop">0</dd></div>
+          <div><dt>Max generation</dt><dd id="sGen">0</dd></div>
+          <div><dt>Births</dt><dd id="sBirths">0</dd></div>
+          <div><dt>Deaths</dt><dd id="sDeaths">0</dd></div>
+          <div><dt>Season</dt><dd id="sSeason">—</dd></div>
+          <div><dt>Climate</dt><dd id="sClimate">—</dd></div>
+        </dl>
+      </section>
+
+      <section>
+        <h2>History</h2>
+        <canvas id="graph"></canvas>
+        <div class="legend">
+          <span><i class="sw pop"></i>Population</span>
+          <span><i class="sw food"></i>Vegetation</span>
+        </div>
+      </section>
+
+      <section>
+        <h2>Species <span id="spCount"></span></h2>
+        <ul id="species"></ul>
+      </section>
+
+      <section>
+        <h2>Average genes</h2>
+        <div id="genes"></div>
+        <canvas id="hues" title="Color distribution across the population"></canvas>
+        <p class="note">Light mark = value at founding.</p>
+      </section>
+    </aside>
+  </div>
+
+  <script src="js/util.js"></script>
+  <script src="js/genes.js"></script>
+  <script src="js/creature.js"></script>
+  <script src="js/species.js"></script>
+  <script src="js/chronicle.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

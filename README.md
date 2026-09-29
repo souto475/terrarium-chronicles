@@ -1,0 +1,140 @@
+# Terrarium Chronicles
+
+An artificial-life terrarium with a newspaper attached. Creatures with genes eat, compete,
+breed with mutations and die. Over generations they drift apart into new species. A chronicle
+watches the simulation and writes the history of the world as headlines:
+
+> **Year 12 · New species.** A new species emerges: the Elya, descended from the Xotha.
+> **Year 18 · Extinction.** The Bibi go extinct after 18 years. At their peak there were 99 of them.
+> **Year 29 · Evolution.** Haste wins out. Creatures are now 31% faster.
+
+The long-term goal is for creatures to form herds, then tribes with territory, conflict and
+culture, with the chronicle turning all of it into a readable history.
+
+## How this project is made
+
+This is an experiment in letting an AI own a project.
+
+- **Claude** (Anthropic's model, working through Claude Code) came up with the idea, chose the
+  stack, designs the features and writes all of the code. Claude decides what gets built next.
+- **[@souto475](https://github.com/souto475)** gives the project the tokens left over in their
+  usage window, then plays with each version and reports bugs, annoyances and impressions.
+  That feedback shapes the next session.
+
+Development happens in short sessions whenever tokens are free. Each session is recorded in
+[DEVLOG.md](DEVLOG.md): what changed, what was learned, and what to try next. The devlog is
+also how Claude picks up where it left off, since each session starts with no memory of the last.
+
+## Running it
+
+Open `index.html` in a browser. No install, no build, no server.
+
+- The number after `#` in the URL is the world seed: `index.html#42` always produces the same world.
+- **Space** pause · **1–4** speed · **scroll** zoom · **drag** pan · **0** reset view ·
+  **click** a creature to inspect it · **F** follow it · **Esc** deselect.
+
+## What's in it so far
+
+- A procedurally generated map with fertile and barren patches, and seasons. Each world gets its
+  own climate, from mild to extreme; in harsh winters the vegetation stops growing.
+- Creatures with six genes, energy, age, a name and a family line.
+- Competition for food, reproduction with mutation, starvation and old age.
+- Species detection: when a group drifts far enough from its species, it becomes a new one, with
+  its own name and a record of its ancestor.
+- The chronicle: population milestones, famines, generation records, evolutionary trends,
+  new species, extinctions and obituaries.
+- Panels: census, full-history chart, living and extinct species, average genes compared with
+  the founders, color distribution, and an inspector for any creature.
+
+## Roadmap
+
+1. ~~**Basic life**: genes, food, reproduction with mutation, death.~~ Done.
+2. ~~**Species**: detect genetically distinct groups, name them, record splits and extinctions.~~ Done (first version).
+3. **Social behavior**: a sociability gene; herding, sharing food, defending kin.
+4. **Territory and conflict**: predation, herds holding ground, fights, migration.
+5. **Culture**: traits passed on by imitation rather than genes (rituals, preferences, simple "technologies").
+6. **World and history**: climate events, disasters, a map with place names, a timeline, one newspaper per era.
+
+## Technical decisions
+
+- **Vanilla JavaScript, no build step, no dependencies.** The project should open with a
+  double-click forever, with nothing to install or update. Plain `<script>` tags instead of ES
+  modules, because browsers block modules on `file://` pages.
+- **Canvas 2D.** Up to a couple of thousand circles per frame is well within its reach. WebGL
+  would add complexity without a visible gain at this scale.
+- **The simulation doesn't touch the DOM.** `util`, `genes`, `creature`, `species`, `chronicle` and
+  `world` run the same in the browser and in Node. That's how balance is tuned: run dozens of
+  simulated decades headless in a few seconds and compare the numbers, rather than watching and guessing.
+- **Seeded randomness.** Everything comes from one seeded generator (mulberry32), so a seed is a
+  shareable, reproducible world. That's handy for bug reports: "seed 7, year 40, this happened".
+- **Vegetation on a grid.** Food lives in 20 px cells instead of as individual plants. Regrowth is
+  one pass over 4,000 numbers, drawing it is a single scaled-up image, and looking for food means
+  scanning nearby cells.
+- **A time budget per frame.** At high speeds the loop runs as many ticks as fit in ~9 ms and
+  leaves the rest of the frame for drawing, so the animation stays smooth when the population
+  explodes. The panel shows the actual speed reached.
+- **Keeping the garbage collector quiet.** Dead creatures are compacted out of the list in place,
+  color strings are cached, and names are generated only when someone looks at a creature.
+  Earlier versions allocated a new array every tick and stuttered from time to time.
+
+## Calibration decisions
+
+The interesting part of a simulation like this is less the code than the numbers.
+
+### Genes
+
+| Gene | Range | What it does | What it costs |
+|---|---|---|---|
+| Size | 0.5–3 | Energy storage (50 × mass), bite size, lifespan (3 + 1.5 × size years), wins food disputes | Metabolism |
+| Speed | 0.2–3 | Distance covered per tick | Movement cost grows with speed² × mass |
+| Sight | 15–200 px | How far it can spot food | A small constant drain |
+| Breeding threshold | 40–95% | How full it must be before having a child | Waiting longer means fewer, better-fed children |
+| Mutation rate | 1–30% | How much children differ from parents | Evolves itself, so worlds can settle or turn chaotic |
+| Color | 0–360° | Nothing, it's neutral | Nothing. It drifts freely, so related creatures look alike |
+
+Mass is size². A year is 400 ticks. A child gets 45% of the parent's energy; the parent keeps 50%,
+and the 5% gap is the cost of birth.
+
+### Metabolism
+
+Cost per tick = `0.006` (fixed) + `0.01 × mass^0.75` + `0.00005 × sight`, plus `0.006 × mass × speed²` while moving.
+
+- The **mass^0.75** exponent is Kleiber's law from real biology: bigger animals burn less energy
+  per kilogram. Without it, being big was never worth it.
+- The **fixed cost** of being alive keeps tiny creatures from being almost free to run.
+- **Competition:** in each cell, a creature smaller than the biggest one present only gets
+  (its mass / biggest mass)² of its bite, and creatures avoid patches held by much bigger ones.
+- **Seasons** scale regrowth by `1 + climate × sin(year phase)`. Each world rolls a climate
+  between 0.7 and 2.6; above 1, winter stops regrowth entirely for a while.
+
+### A finding: small and fast always wins (for now)
+
+In every world tested, evolution heads to "small and fast" (size drifting to ~0.55, speed up
+50% or more). Four fixes were tried: Kleiber scaling, a fixed living cost, food competition and
+harsh winters. None reversed it. Food ends up spread thin, everyone grazes on the move, and
+whoever spends least wins. That matches biology: without predators, small bodies and fast
+generations dominate. Size pays off when there is someone to fight or flee from, so predation
+(roadmap step 4) should rebalance it, and forcing it earlier would only fake the result.
+
+### Species
+
+Genetic distance is measured over size, speed, sight and breeding threshold, each normalized
+to its range, plus hue with 60° weighing as much as a quarter of a trait's range. Twice a year,
+creatures farther than **0.38** from their species' average are grouped; a group of at least
+**15** becomes a new species. At 0.30, species multiplied into dozens of tiny groups. At 0.45,
+new species almost never appeared. 0.38 gives around 5–7 living species over a 60-year run,
+with regular splits and extinctions.
+
+## Project structure
+
+| File | Role |
+|---|---|
+| `js/util.js` | Config (`T.CFG`), seeded RNG, noise, name generator |
+| `js/genes.js` | Gene definitions, genetic distance, mutation |
+| `js/creature.js` | A creature: finding food, moving, metabolism, breeding, death |
+| `js/species.js` | Species records and speciation |
+| `js/world.js` | Vegetation grid, seasons, the `step()` loop, census |
+| `js/chronicle.js` | Watches events and writes headlines |
+| `js/render.js` | Canvas, camera, drawing |
+| `js/ui.js` | Panels: chronicle, census, chart, species, genes, inspector |
+| `js/main.js` | Animation loop and input |
