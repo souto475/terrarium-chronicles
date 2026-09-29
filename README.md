@@ -50,8 +50,9 @@ with every push to `main`. Or clone the repo and open `index.html`: no install, 
 - Species cards: hover a species to see its population curve, what makes it distinct, its
   ancestors and descendants and, for extinct ones, how it ended (hunger, old age, a rival
   that grew while it shrank, or a slow transformation into another species).
-- Panels: census, full-history chart, living and extinct species, average genes compared with
-  the founders, color distribution, and an inspector for any creature.
+- Panels: census, living species with their color spread (extinct ones folded away), a
+  full-history chart, an evolution panel that plots how each average gene has moved since the
+  founders, and an inspector for any creature.
 - A performance monitor (**P**) that splits each slow frame into simulation, drawing, panels and
   time spent by the browser itself. It exists to track down the occasional stutter.
 

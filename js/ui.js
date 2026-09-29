@@ -1,5 +1,5 @@
 'use strict';
-// Side panels: chronicle, census, chart, species, genes and inspector.
+// Side panels: chronicle, census, species, chart, evolution and inspector.
 
 const KIND_TAG = {
   founding: 'Founding',
@@ -15,7 +15,7 @@ const KIND_TAG = {
 
 const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
 const MAX_ENTRIES = 300;
-const EXTINCT_SHOWN = 5;
+const SPARK_POINTS = 60;
 
 T.seasonName = (w) => SEASONS[Math.floor(((w.season() + 0.125) % 1) * 4)];
 
@@ -56,6 +56,7 @@ T.UI = class {
     this.toastTimer = 0;
     this.hoverSpecies = -1;
     this.cardPinned = false;
+    this.showExtinct = false;
     this.bindSpeciesCard();
   }
 
@@ -68,19 +69,6 @@ T.UI = class {
     $('seedInput').value = w.seed;
     $('sClimate').textContent = T.climateName(w.climate);
 
-    const genes = $('genes');
-    genes.innerHTML = '';
-    this.geneEls = {};
-    for (const k of T.TRAIT_KEYS) {
-      const d = T.GENES[k];
-      const el = document.createElement('div');
-      el.className = 'gene';
-      el.innerHTML = `<div class="top"><span>${d.label}</span><span></span></div><div class="bar"><i></i><b></b></div>`;
-      genes.appendChild(el);
-      const pct = ((w.foundingAvg[k] - d.min) / (d.max - d.min)) * 100;
-      el.querySelector('b').style.left = `calc(${pct}% - 1px)`;
-      this.geneEls[k] = { val: el.querySelector('.top span:last-child'), bar: el.querySelector('i') };
-    }
     this.hideInspector();
     this.hoverSpecies = -1;
     this.renderSpeciesCard();
@@ -104,7 +92,7 @@ T.UI = class {
   }
 
   update(selected, paused, actualSpeed) {
-    const w = this.w, last = w.last;
+    const w = this.w;
     const season = T.seasonName(w);
     $('clock').textContent = `Year ${T.yearOf(w.tick)} · ${season}`;
     $('sPop').textContent = w.creatures.length;
@@ -117,12 +105,7 @@ T.UI = class {
 
     this.updateSpecies();
 
-    for (const k of T.TRAIT_KEYS) {
-      const d = T.GENES[k], v = last.avg[k];
-      this.geneEls[k].val.textContent = w.creatures.length ? d.fmt(v) : '—';
-      this.geneEls[k].bar.style.width = (w.creatures.length ? ((v - d.min) / (d.max - d.min)) * 100 : 0) + '%';
-    }
-
+    this.updateEvolution();
     this.drawGraph();
     this.drawHues();
     this.updateInspector(selected);
@@ -143,20 +126,76 @@ T.UI = class {
         <span class="count">${info}</span>
         <i class="share" style="width:${share.toFixed(1)}%"></i></li>`;
     };
-    let html = alive.map(row).join('');
-    if (extinct.length) {
-      html += `<li class="divider">Extinct (${extinct.length})</li>` + extinct.slice(0, EXTINCT_SHOWN).map(row).join('');
-    }
+    const html = alive.map(row).join('');
     const list = $('species');
     if (list.innerHTML !== html) list.innerHTML = html;
+
+    // Extinct species live in their own list, collapsed by default, so the living ones stay on top.
+    const toggle = $('extinctToggle'), ext = $('extinct');
+    toggle.hidden = !extinct.length;
+    toggle.textContent = `Extinct (${extinct.length})`;
+    toggle.setAttribute('aria-expanded', String(this.showExtinct));
+    ext.hidden = !this.showExtinct || !extinct.length;
+    if (!ext.hidden) {
+      const extHtml = extinct.map(row).join('');
+      if (ext.innerHTML !== extHtml) ext.innerHTML = extHtml;
+    }
     $('spCount').textContent = `${alive.length} alive`;
     this.renderSpeciesCard();
+  }
+
+  // ---------- Evolution: how each average gene moved since the founders ----------
+
+  updateEvolution() {
+    const w = this.w, found = w.foundingAvg;
+    const W = 110, H = 24;
+    const samples = w.history.filter((p) => p.pop > 0);
+    const rows = T.TRAIT_KEYS.map((k) => {
+      const d = T.GENES[k];
+      const series = samples.map((p) => p.avg[k]);
+      if (!series.length) return '';
+      const v = w.creatures.length ? w.last.avg[k] : series[series.length - 1];
+      const pct = Math.round(((v - found[k]) / found[k]) * 100);
+      const moved = Math.abs(pct) >= 5;
+      const tag = moved ? `${pct > 0 ? '▲' : '▼'} ${Math.abs(pct)}%` : 'steady';
+
+      // Scale to the series, but never tighter than 6% of the gene's range, so noise stays flat.
+      const step = Math.max(1, Math.floor(series.length / SPARK_POINTS));
+      const pts = series.filter((_, i) => i % step === 0);
+      if (pts[pts.length - 1] !== series[series.length - 1]) pts.push(series[series.length - 1]);
+      let lo = Math.min(found[k], ...pts), hi = Math.max(found[k], ...pts);
+      const minSpan = (d.max - d.min) * 0.06;
+      if (hi - lo < minSpan) {
+        const mid = (hi + lo) / 2;
+        lo = mid - minSpan / 2;
+        hi = mid + minSpan / 2;
+      }
+      const y = (val) => (H - 3 - ((val - lo) / (hi - lo)) * (H - 6)).toFixed(1);
+      const line = pts.length > 1
+        ? pts.map((val, i) => `${((i / (pts.length - 1)) * W).toFixed(1)},${y(val)}`).join(' ')
+        : '';
+      return `<div class="evo-row${moved ? ' moved' : ''}">
+        <span class="evo-label">${d.label}</span>
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+          <line x1="0" x2="${W}" y1="${y(found[k])}" y2="${y(found[k])}" class="evo-base" vector-effect="non-scaling-stroke"/>
+          <polyline points="${line}" class="evo-line" vector-effect="non-scaling-stroke"/>
+        </svg>
+        <span class="evo-val">${d.fmt(v)}</span>
+        <span class="evo-delta">${tag}</span>
+      </div>`;
+    }).join('');
+    const el = $('evolution');
+    if (el.innerHTML !== rows) el.innerHTML = rows;
   }
 
   // ---------- Species card (hover a species, or tap it on touch screens) ----------
 
   bindSpeciesCard() {
-    const list = $('species');
+    $('extinctToggle').addEventListener('click', () => {
+      this.showExtinct = !this.showExtinct;
+      this.updateSpecies();
+    });
+    const list = $('speciesSection');
     list.addEventListener('mousemove', (e) => {
       const li = e.target.closest('li[data-id]');
       this.setHoverSpecies(li ? +li.dataset.id : -1);
@@ -181,7 +220,7 @@ T.UI = class {
   renderSpeciesCard() {
     const card = $('speciesCard');
     const id = this.hoverSpecies;
-    const li = id >= 0 ? $('species').querySelector(`li[data-id="${id}"]`) : null;
+    const li = id >= 0 ? $('speciesSection').querySelector(`li[data-id="${id}"]`) : null;
     if (!li) {
       card.hidden = true;
       return;

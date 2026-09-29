@@ -62,6 +62,14 @@
         </dl>
       </section>
 
+      <section id="speciesSection">
+        <h2>Species <span id="spCount"></span></h2>
+        <ul id="species"></ul>
+        <canvas id="hues" title="Colors of every living creature: each species tends to its own hue"></canvas>
+        <button id="extinctToggle" class="disclosure" aria-expanded="false" hidden></button>
+        <ul id="extinct" hidden></ul>
+      </section>
+
       <section>
         <h2>History</h2>
         <canvas id="graph"></canvas>
@@ -72,15 +80,9 @@
       </section>
 
       <section>
-        <h2>Species <span id="spCount"></span></h2>
-        <ul id="species"></ul>
-      </section>
-
-      <section>
-        <h2>Average genes</h2>
-        <div id="genes"></div>
-        <canvas id="hues" title="Color distribution across the population"></canvas>
-        <p class="note">Light mark = value at founding.</p>
+        <h2>Evolution <span class="h2-note">since founding</span></h2>
+        <div id="evolution"></div>
+        <p class="note">Average of all living creatures over time. Dashed line = founders.</p>
       </section>
     </aside>
   </div>

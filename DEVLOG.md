@@ -44,6 +44,19 @@ Changes:
     (`world.speciesYearly`).
 - `window.terrarium` now also exposes `ui` and `perf`.
 
+Later in the session, more feedback: the extinct list will keep growing and push everything
+down; and the "Average genes" panel goes unnoticed. The tester asked that suggestions be judged,
+not just implemented.
+- Extinct species now sit in their own list, collapsed by default behind an "Extinct (N)"
+  toggle, scrollable when open. Their stories already live in the chronicle and species cards.
+- The average-genes bars were dropped rather than highlighted: a bar showing today's average
+  says nothing about evolution. The new **Evolution** panel plots each average gene over the
+  whole history against a dashed founders' line, with the change since founding ("▲ 46%").
+  Sparklines scale to their own data but never tighter than 6% of the gene's range, so noise
+  doesn't look like a trend. Genes that moved 5% or more are highlighted.
+- Panel order is now census, species, history, evolution. The color strip moved under the
+  species list, where it reads as "each species has its own hue".
+
 Next:
 - Get monitor readings from a real stutter. If long frames are mostly "browser", look at paint
   and compositing (DevTools Performance tab); if "sim", profile the tick.
