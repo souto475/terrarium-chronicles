@@ -33,6 +33,10 @@ plays each version and reports what they see. That split is the point of the who
 - The simulation files (`util`, `genes`, `creature`, `species`, `chronicle`, `world`) have no DOM
   dependencies: load them into a Node `vm` context with `globalThis` and step a `new T.World(seed)`.
   Run several seeds for decades before judging a balance change.
+- `tools/batch.js` runs many seeds headless and summarizes them; `OVERRIDES='NAME=value'` swaps
+  constants in `creature.js` for A/B comparisons. Worlds vary a lot: use two dozen seeds or more.
+  Adding a gene or any new random call changes every world, so compare configurations on the same
+  code, not against old logs.
 - Worlds are deterministic per seed, so a tester's "world #N, year Y" can be reproduced exactly.
 - In the browser, `window.terrarium` exposes `world`, `renderer`, `ui` and `perf`. The preview
   pane is often hidden, which pauses animation and makes canvas timings unreliable.

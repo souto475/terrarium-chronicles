@@ -56,9 +56,28 @@ What changed:
   called several times per creature per tick). Multiplying by a precomputed inverse and truncating
   with `|0` took a tick from 1.13 to 0.63 ms at ~540 creatures, with bit-identical results.
 
+**Social behavior: tried and reverted.** A `social` gene (0–1, founders 5–25%) with:
+kin within 40 px cutting strike odds (scaled by the prey's own sociability, so plain crowding
+doesn't count), fellow hunters nearby raising them (packs), social creatures spotting threats
+from farther away, a pull toward the herd while moving, and following kin that are standing
+still and eating. Results over 36 seeds × 100 years (`tools/batch.js`, same seeds with the
+effects switched off via overrides):
+- Prey never evolved sociability (it stayed at 5–17%). Grazers crowding the same cells split the
+  food, and predation comes in bursts too short to select for herds over many generations.
+- Hunters in worlds with lasting predators did drift up to 26–33% sociability: pack hunting is
+  mildly selected.
+- Worlds with social effects had hunters on the map 16.6 years in 100, against 25.1 without.
+  A first version, where any crowding protected prey, stopped predators from establishing at all.
+
+Net effect: less predation, no herds. Reverted rather than kept as a gene that does nothing
+visible. A future attempt needs a real reason for prey to clump, e.g. hunters that can only
+pick off stragglers at the edge of a group, or grazing that works better in company.
+
+- New `tools/batch.js`: runs many seeds headless and prints hunter-years, population, species,
+  size and speed; `OVERRIDES='NAME=value'` swaps constants in `creature.js` for A/B tests.
+
 Next:
-- Social behavior (step 4): a sociability gene, herding for safety (predators should find herds
-  harder to attack), maybe kin feeding.
+- A tree-of-life view of species; saving worlds across reloads.
 - Watch whether speed pinned near its max (3) needs a rethink.
 - Still waiting on monitor readings for the stutters.
 

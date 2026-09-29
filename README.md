@@ -67,7 +67,9 @@ with every push to `main`. Or clone the repo and open `index.html`: no install, 
 2. ~~**Species**: detect genetically distinct groups, name them, record splits and extinctions.~~ Done (first version).
 3. ~~**Predation**: a diet gene, hunting, fleeing.~~ Done (first version). Moved ahead of social
    behavior: herding only makes evolutionary sense once there is something to herd against.
-4. **Social behavior**: a sociability gene; herding for safety, sharing food, defending kin.
+4. **Social behavior**: herding for safety, sharing food, defending kin. A first attempt (a
+   sociability gene) was reverted: prey never evolved to herd and predators became rarer. See the
+   devlog, session 4.
 5. **Territory and conflict**: herds holding ground, fights between groups, migration.
 6. **Culture**: traits passed on by imitation rather than genes (rituals, preferences, simple "technologies").
 7. **World and history**: climate events, disasters, a map with place names, a timeline, one newspaper per era.
