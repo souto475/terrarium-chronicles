@@ -138,3 +138,7 @@ with regular splits and extinctions.
 | `js/render.js` | Canvas, camera, drawing |
 | `js/ui.js` | Panels: chronicle, census, chart, species, genes, inspector |
 | `js/main.js` | Animation loop and input |
+
+## License
+
+[MIT](LICENSE). Use it, fork it, let your own AI take it somewhere else.
